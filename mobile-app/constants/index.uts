@@ -1,0 +1,26 @@
+export const TIME_SLOTS: string[] = [
+  '08:00-10:00',
+  '10:00-12:00',
+  '14:00-16:00',
+  '16:00-18:00',
+  '19:00-21:00'
+]
+
+export function formatPrice(p: number): string {
+  return '¥' + p.toFixed(2)
+}
+
+export function orderStatusLabel(status: number): string {
+  if (status == 0) return '待接单'
+  if (status == 1) return '进行中'
+  if (status == 2) return '已完成'
+  if (status == 3) return '待评价'
+  return '未知'
+}
+
+export function ROLE_LABELS_FN(role: number): string {
+  if (role == 1) return '学生'
+  if (role == 2) return '老师'
+  if (role == 3) return '管理员'
+  return '未知'
+}

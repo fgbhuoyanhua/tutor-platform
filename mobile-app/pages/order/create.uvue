@@ -1,0 +1,228 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <view v-if="tutor != null" class="card">
+      <view class="detail-head">
+        <image v-if="tutor!['avatar'] != null && tutor!['avatar'] != ''" class="avatar" :src="tutor!['avatar']" mode="aspectFill" />
+        <text v-else class="avatar avatar-text">{{ (tutor!['tutorName'] as string).substring(0, 1) }}</text>
+        <view class="meta">
+          <text class="name">{{ tutor!['tutorName'] }}</text>
+          <view class="tags">
+            <text class="tag tag-subject">{{ tutor!['subjectName'] }}</text>
+            <text class="tag">{{ tutor!['grade'] }}</text>
+          </view>
+        </view>
+        <text class="price">¥{{ tutor!['price'] }}/h</text>
+      </view>
+      <text class="intro">{{ tutor!['introduce'] }}</text>
+    </view>
+
+    <view class="card">
+      <text class="section-title">选择预约日期</text>
+      <picker mode="date" :start="today" :value="appointDate" @change="onDateChange">
+        <view class="picker-value">{{ appointDate == '' ? '请选择日期' : appointDate }}</view>
+      </picker>
+    </view>
+
+    <view class="card">
+      <text class="section-title">选择时间段</text>
+      <view class="slot-grid">
+        <text
+          v-for="(s: string, i: number) in slots"
+          :key="i"
+          :class="['slot-item', timeSlot == s ? 'active' : '']"
+          @click="timeSlot = s"
+        >{{ s }}</text>
+      </view>
+    </view>
+
+    <view class="footer">
+      <button class="btn-primary" :loading="loading" @click="onSubmit">提交预约</button>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { getTutor } from '../../api/tutor'
+import { createOrder } from '../../api/order'
+import { TIME_SLOTS } from '../../constants'
+
+export default {
+  data() {
+    return {
+      tutorId: 0,
+      tutor: null as UTSJSONObject | null,
+      appointDate: '',
+      timeSlot: '',
+      loading: false,
+      slots: TIME_SLOTS as string[]
+    }
+  },
+  onLoad(options: OnLoadOptions) {
+    const id = options['id']
+    this.tutorId = parseInt(id != null ? id.toString() : '0')
+    this.loadTutor()
+  },
+  computed: {
+    today(): string {
+      const d = new Date()
+      const y = d.getFullYear()
+      const m = d.getMonth() + 1
+      const day = d.getDate()
+      return y + '-' + (m < 10 ? '0' + m : '' + m) + '-' + (day < 10 ? '0' + day : '' + day)
+    }
+  },
+  methods: {
+    async loadTutor() {
+      try {
+        this.tutor = await getTutor(this.tutorId)
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      }
+    },
+    onDateChange(e: UTSJSONObject) {
+      const detail = e['detail'] as UTSJSONObject | null
+      const v = detail != null ? (detail['value'] as string | null) : null
+      this.appointDate = v != null ? v.toString() : ''
+    },
+    async onSubmit() {
+      if (this.appointDate == '') {
+        uni.showToast({ title: '请选择日期', icon: 'none' })
+        return
+      }
+      if (this.timeSlot == '') {
+        uni.showToast({ title: '请选择时间段', icon: 'none' })
+        return
+      }
+      this.loading = true
+      try {
+        const body = new UTSJSONObject()
+        body.set('tutorId', this.tutor!['id'])
+        body.set('subjectId', this.tutor!['subjectId'])
+        body.set('appointDate', this.appointDate)
+        body.set('timeSlot', this.timeSlot)
+        await createOrder(body)
+        uni.showToast({ title: '预约成功', icon: 'success' })
+        setTimeout(() => {
+          uni.switchTab({ url: '/pages/order/list' })
+        }, 600)
+      } catch (e) {
+        uni.showToast({ title: '预约失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background: #f5f7fa;
+  padding-bottom: 160rpx;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin: 20rpx;
+}
+.detail-head {
+  display: flex;
+    flex-direction: row;
+  align-items: center;
+}
+.avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: #eef2ff;
+}
+.avatar-text {
+  text-align: center;
+  line-height: 88rpx;
+  font-size: 32rpx;
+  color: #4f6ef7;
+  font-weight: 600;
+}
+.meta {
+  flex: 1;
+  margin-left: 20rpx;
+}
+.name {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.tags {
+  display: flex;
+    flex-direction: row;
+  margin-top: 8rpx;
+}
+.tag {
+  font-size: 22rpx;
+  color: #909399;
+  background: #f0f2f5;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+}
+.tag-subject {
+  color: #4f6ef7;
+  background: #ecf5ff;
+}
+.price {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #f56c6c;
+}
+.intro {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-top: 16rpx;
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  margin-bottom: 20rpx;
+}
+.picker-value {
+  font-size: 28rpx;
+  color: #4f6ef7;
+  padding: 12rpx 0;
+}
+.slot-grid {
+  display: flex;
+    flex-direction: row;
+  flex-wrap: wrap;
+}
+.slot-item {
+  padding: 12rpx 24rpx;
+  border-radius: 8rpx;
+  background: #f0f2f5;
+  font-size: 24rpx;
+  color: #606266;
+  margin-right: 16rpx;
+  margin-bottom: 16rpx;
+}
+.slot-item.active {
+  background: #4f6ef7;
+  color: #ffffff;
+}
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx;
+  background: #ffffff;
+}
+.btn-primary {
+  background: #4f6ef7;
+  color: #ffffff;
+  border-radius: 12rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 30rpx;
+}
+</style>

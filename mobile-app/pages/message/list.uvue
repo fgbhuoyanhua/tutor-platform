@@ -1,0 +1,202 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 800px;">
+    <view class="section">
+      <view class="section-head">
+        <text class="section-title">通知</text>
+        <text class="clear-btn" @click="clearRead">删除已读</text>
+      </view>
+      <text v-if="notices.length == 0" class="empty-small">暂无通知</text>
+      <view v-for="(m: UTSJSONObject, i: number) in notices" :key="i" class="notice-item" :class="{ unread: m['isRead'] == 0 }" @click="tapNotice(m)">
+        <text class="notice-content">{{ m['content'] }}</text>
+        <text class="notice-time">{{ m['createTime'] }}</text>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">私信</text>
+      <text v-if="conversations.length == 0" class="empty-small">还没有私信，去老师详情页"发消息"吧</text>
+      <view
+        v-for="(c: UTSJSONObject, i: number) in conversations"
+        :key="i"
+        class="conv-item"
+        @click="goChat(c)"
+      >
+        <view v-if="c['otherAvatar'] != null && c['otherAvatar'] != ''" class="avatar" :src="c['otherAvatar']" mode="aspectFill" />
+        <text v-else class="avatar avatar-text">{{ (c['otherName'] as string).substring(0, 1) }}</text>
+        <view class="conv-meta">
+          <view class="conv-top">
+            <text class="conv-name">{{ c['otherName'] }}</text>
+            <text class="conv-time">{{ c['lastTime'] }}</text>
+          </view>
+          <text class="conv-last">{{ c['lastContent'] }}</text>
+        </view>
+        <view v-if="unreadOf(c) > 0" class="badge">{{ unreadOf(c) }}</view>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { listMessages, listConversations, markOneRead, deleteRead } from '../../api/message'
+
+export default {
+  data() {
+    return {
+      notices: [] as UTSJSONObject[],
+      conversations: [] as UTSJSONObject[]
+    }
+  },
+  onShow() {
+    this.load()
+  },
+  methods: {
+    unreadOf(c: UTSJSONObject): number {
+      const v = c['unreadCount']
+      return v == null ? 0 : (v as number)
+    },
+    async load() {
+      try {
+        const all = await listMessages()
+        const list = all['list'] as UTSJSONObject[]
+        this.notices = list.filter((m: UTSJSONObject) => m['type'] != 4).slice(0, 20)
+        const convRes = await listConversations()
+        this.conversations = convRes['list'] as UTSJSONObject[]
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      }
+    },
+    async tapNotice(m: UTSJSONObject) {
+      try {
+        const id = m['id']
+        if (id != null) {
+          await markOneRead(id as number)
+          m.set('isRead', 1)
+        }
+      } catch (e) {}
+    },
+    async clearRead() {
+      try {
+        await deleteRead()
+        uni.showToast({ title: '已删除', icon: 'success' })
+        this.load()
+      } catch (e) {
+        uni.showToast({ title: '删除失败', icon: 'none' })
+      }
+    },
+    goChat(c: UTSJSONObject) {
+      uni.navigateTo({
+        url: '/pages/message/chat?otherId=' + c['otherId'] + '&otherName=' + encodeURIComponent(c['otherName'] as string)
+      })
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background: #f5f7fa;
+  padding-bottom: 40rpx;
+}
+.section {
+  background: #ffffff;
+  margin: 20rpx;
+  border-radius: 16rpx;
+  padding: 24rpx;
+}
+.section-head {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.clear-btn {
+  font-size: 24rpx;
+  color: #909399;
+}
+.notice-item {
+  padding: 16rpx 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f0f0f0;
+}
+.notice-item.unread .notice-content {
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.notice-content {
+  font-size: 26rpx;
+  color: #333;
+}
+.notice-time {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 8rpx;
+}
+.conv-item {
+  display: flex;
+    flex-direction: row;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f0f0f0;
+}
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  background: #eef2ff;
+}
+.avatar-text {
+  text-align: center;
+  line-height: 80rpx;
+  font-size: 30rpx;
+  color: #4f6ef7;
+  font-weight: 600;
+}
+.conv-meta {
+  flex: 1;
+  margin-left: 20rpx;
+}
+.conv-top {
+  display: flex;
+    flex-direction: row;
+  justify-content: space-between;
+}
+.conv-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.conv-time {
+  font-size: 22rpx;
+  color: #909399;
+}
+.conv-last {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 6rpx;
+}
+.badge {
+  background: #f56c6c;
+  color: #ffffff;
+  font-size: 20rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  padding: 0 8rpx;
+}
+.empty-small {
+  text-align: center;
+  color: #909399;
+  padding: 40rpx 0;
+  font-size: 26rpx;
+}
+</style>

@@ -1,0 +1,229 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 500px;">
+    <view class="card user-card">
+      <view v-if="hasAvatar" class="avatar" :src="user!['avatar']" mode="aspectFill" />
+      <text v-else class="avatar avatar-text">{{ avatarChar }}</text>
+      <view class="user-meta">
+        <text class="user-name">{{ user != null ? ((user!['realName'] != null && user!['realName'] != '') ? user!['realName'] : user!['username']) : '' }}</text>
+        <text class="user-role">{{ roleLabel }}</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <text class="section-title">个人资料</text>
+      <view class="form-row">
+        <text class="label">用户名</text>
+        <text class="value">{{ user != null ? user!['username'] : '' }}</text>
+      </view>
+      <view class="form-row">
+        <text class="label">真实姓名</text>
+        <input class="input" v-model="realName" placeholder="请输入真实姓名" />
+      </view>
+      <button class="btn-primary" @click="saveProfile">保存资料</button>
+    </view>
+
+    <view class="card menu-card">
+      <view class="menu-item" @click="goPassword">
+        <text class="menu-text">修改密码</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+
+    <button class="btn-logout" @click="logout">退出登录</button>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { getUser, setUser, clearToken } from '../../utils/storage'
+import { updateProfile, updatePassword } from '../../api/user'
+import { ROLE_LABELS_FN } from '../../constants'
+
+export default {
+  data() {
+    return {
+      user: null as UTSJSONObject | null,
+      realName: '',
+      winHeight: 600
+    }
+  },
+  computed: {
+    hasAvatar(): boolean {
+      return this.user != null && this.user!['avatar'] != null && this.user!['avatar'] != ''
+    },
+    avatarChar(): string {
+      if (this.user == null) return '?'
+      const n = this.user!['realName'] as string | null
+      if (n == null || n == '') return (this.user!['username'] as string).substring(0, 1)
+      return n.substring(0, 1)
+    },
+    roleLabel(): string {
+      if (this.user == null) return ''
+      return ROLE_LABELS_FN(this.user!['role'] as number)
+    },
+    isTutor(): boolean {
+      return this.user != null && this.user!['role'] == 2
+    }
+  },
+  onShow() {
+    const sys = uni.getSystemInfoSync()
+    this.winHeight = sys.windowHeight
+    const u = getUser()
+    this.user = u
+    this.realName = (u != null && u['realName'] != null) ? (u['realName'] as string) : ''
+  },
+  methods: {
+    goFavorites() {
+      uni.navigateTo({ url: '/pages/favorite/list' })
+    },
+    goIncome() {
+      uni.navigateTo({ url: '/pages/tutor/income' })
+    },
+    goCalendar() {
+      uni.navigateTo({ url: '/pages/tutor/calendar' })
+    },
+    goStudents() {
+      uni.navigateTo({ url: '/pages/tutor/students' })
+    },
+    goEvals() {
+      uni.navigateTo({ url: '/pages/tutor/evaluations' })
+    },
+    async saveProfile() {
+      if (this.realName.trim() == '') {
+        uni.showToast({ title: '真实姓名不能为空', icon: 'none' })
+        return
+      }
+      try {
+        await updateProfile(this.realName.trim())
+        if (this.user != null) {
+          this.user!.set('realName', this.realName.trim())
+          setUser(this.user!)
+        }
+        uni.showToast({ title: '已保存', icon: 'success' })
+      } catch (e) {
+        uni.showToast({ title: '保存失败', icon: 'none' })
+      }
+    },
+    goPassword() {
+      uni.navigateTo({ url: '/pages/me/password' })
+    },
+    logout() {
+      clearToken()
+      uni.reLaunch({ url: '/pages/auth/login' })
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  background: #f5f7fa;
+  padding: 20rpx 0 120rpx 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin: 20rpx;
+  flex-shrink: 0;
+}
+.user-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 48rpx;
+  background: #eef2ff;
+  flex-shrink: 0;
+}
+.avatar-text {
+  text-align: center;
+  line-height: 96rpx;
+  font-size: 36rpx;
+  color: #4f6ef7;
+  font-weight: 600;
+}
+.user-meta {
+  margin-left: 20rpx;
+}
+.user-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.user-role {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 6rpx;
+}
+.menu-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.menu-text {
+  font-size: 30rpx;
+  color: #1a1b1c;
+}
+.menu-arrow {
+  font-size: 32rpx;
+  color: #c0c4cc;
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  margin-bottom: 20rpx;
+}
+.form-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 20rpx 0;
+}
+.label {
+  width: 160rpx;
+  font-size: 28rpx;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+.value {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a1b1c;
+}
+.input {
+  flex: 1;
+  background: #f5f7fa;
+  border-radius: 8rpx;
+  padding: 12rpx 16rpx;
+  font-size: 28rpx;
+}
+.btn-primary {
+  margin-top: 20rpx;
+  background: #4f6ef7;
+  color: #fff;
+  border-radius: 12rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 30rpx;
+  flex-shrink: 0;
+}
+.btn-logout {
+  margin: 40rpx 20rpx;
+  background: #fff;
+  color: #e55;
+  border: 1px solid #fcc;
+  border-radius: 12rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 30rpx;
+  flex-shrink: 0;
+}
+</style>

@@ -1,0 +1,292 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <text v-if="loading" class="empty">加载中...</text>
+
+    <view v-else-if="tutor != null">
+      <!-- 老师信息卡 -->
+      <view class="card">
+        <view class="head">
+          <image v-if="tutor!['avatar'] != null && tutor!['avatar'] != ''" class="avatar" :src="tutor!['avatar']" mode="aspectFill" />
+          <text v-else class="avatar avatar-text">{{ (tutor!['tutorName'] as string).substring(0, 1) }}</text>
+          <view class="meta">
+            <view class="name-row">
+              <text class="name">{{ tutor!['tutorName'] }}</text>
+              <text :class="['fav', isFav ? 'fav-on' : '']" @click="toggleFav">{{ isFav ? '★ 已收藏' : '☆ 收藏' }}</text>
+            </view>
+            <view class="tags">
+              <text class="tag tag-subject">{{ tutor!['subjectName'] }}</text>
+              <text class="tag">{{ tutor!['grade'] }}</text>
+            </view>
+            <view class="stats">
+              <text class="stat">评分 ★{{ tutor!['rating'] }}</text>
+              <text class="stat">{{ tutor!['evaluateCount'] }} 条评价</text>
+              <text class="stat">{{ tutor!['finishedOrderCount'] }} 次完课</text>
+            </view>
+          </view>
+        </view>
+        <view class="intro-block">
+          <text class="intro-label">个人介绍</text>
+          <text class="intro">{{ (tutor!['introduce'] == null || tutor!['introduce'] == '') ? '这位老师很懒，什么都没写' : tutor!['introduce'] }}</text>
+        </view>
+        <view class="price-row">
+          <text class="price">¥{{ tutor!['price'] }}/小时</text>
+        </view>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="actions">
+        <button class="btn btn-outline" @click="goMessage">发消息</button>
+        <button class="btn btn-primary" @click="goBook">立即预约</button>
+      </view>
+
+      <!-- 评价列表 -->
+      <view class="card">
+        <text class="section-title">学生评价</text>
+        <text v-if="evaluations.length == 0" class="empty-small">还没有评价</text>
+        <view v-for="(ev: UTSJSONObject, i: number) in evaluations" :key="i" class="eval-item">
+          <view class="eval-head">
+            <text class="eval-name">{{ ev['studentName'] }}</text>
+            <text class="eval-score">★ {{ ev['score'] }}</text>
+          </view>
+          <text v-if="ev['content'] != null && ev['content'] != ''" class="eval-content">{{ ev['content'] }}</text>
+          <text class="eval-time">{{ ev['createTime'] }}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { getTutor } from '../../api/tutor'
+import { tutorEvaluations } from '../../api/evaluation'
+import { addFavorite, removeFavorite } from '../../api/favorite'
+
+export default {
+  data() {
+    return {
+      tutorId: 0,
+      tutor: null as UTSJSONObject | null,
+      evaluations: [] as UTSJSONObject[],
+      isFav: false,
+      loading: true
+    }
+  },
+  onLoad(query: OnLoadOptions) {
+    const id = query['id']
+    this.tutorId = parseInt(id != null ? id.toString() : '0')
+    this.load()
+  },
+  methods: {
+    async load() {
+      this.loading = true
+      try {
+        const t = await getTutor(this.tutorId)
+        this.tutor = t
+        const uid = t['userId'] as number
+        const evRes = await tutorEvaluations(uid, 1, 20)
+        this.evaluations = evRes['records'] as UTSJSONObject[]
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
+    async toggleFav() {
+      if (this.tutor == null) return
+      try {
+        if (this.isFav) {
+          await removeFavorite(this.tutorId)
+          this.isFav = false
+          uni.showToast({ title: '已取消收藏', icon: 'none' })
+        } else {
+          await addFavorite(this.tutorId)
+          this.isFav = true
+          uni.showToast({ title: '已收藏', icon: 'success' })
+        }
+      } catch (e) {
+        uni.showToast({ title: '操作失败', icon: 'none' })
+      }
+    },
+    goMessage() {
+      if (this.tutor == null) return
+      uni.navigateTo({
+        url: '/pages/message/chat?otherId=' + this.tutor!['userId'] + '&otherName=' + encodeURIComponent(this.tutor!['tutorName'] as string)
+      })
+    },
+    goBook() {
+      uni.navigateTo({
+        url: '/pages/order/create?id=' + this.tutorId
+      })
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background: #f5f7fa;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin: 20rpx;
+}
+.head {
+  display: flex;
+    flex-direction: row;
+}
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 48rpx;
+  background: #eef2ff;
+}
+.avatar-text {
+  text-align: center;
+  line-height: 96rpx;
+  font-size: 36rpx;
+  color: #4f6ef7;
+  font-weight: 600;
+}
+.meta {
+  flex: 1;
+  margin-left: 20rpx;
+}
+.name-row {
+  display: flex;
+    flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.fav {
+  font-size: 24rpx;
+  color: #909399;
+}
+.fav-on {
+  color: #f56c6c;
+}
+.tags {
+  display: flex;
+    flex-direction: row;
+  margin-top: 12rpx;
+}
+.tag {
+  font-size: 22rpx;
+  color: #909399;
+  background: #f0f2f5;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+}
+.tag-subject {
+  color: #4f6ef7;
+  background: #ecf5ff;
+}
+.stats {
+  display: flex;
+    flex-direction: row;
+  margin-top: 16rpx;
+}
+.stat {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-right: 20rpx;
+}
+.intro-block {
+  margin-top: 24rpx;
+}
+.intro-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.intro {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-top: 8rpx;
+}
+.price-row {
+  margin-top: 20rpx;
+}
+.price {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #f56c6c;
+}
+.actions {
+  display: flex;
+    flex-direction: row;
+  margin: 20rpx;
+}
+.btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  margin-right: 20rpx;
+}
+.btn-primary {
+  background: #4f6ef7;
+  color: #ffffff;
+}
+.btn-outline {
+  background: #ffffff;
+  color: #4f6ef7;
+  border: 1px solid #4f6ef7;
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  margin-bottom: 20rpx;
+}
+.eval-item {
+  padding: 20rpx 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f0f0f0;
+}
+.eval-head {
+  display: flex;
+    flex-direction: row;
+  justify-content: space-between;
+}
+.eval-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.eval-score {
+  font-size: 24rpx;
+  color: #e6a23c;
+}
+.eval-content {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-top: 8rpx;
+}
+.eval-time {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 8rpx;
+}
+.empty {
+  text-align: center;
+  color: #909399;
+  padding: 120rpx 0;
+  font-size: 28rpx;
+}
+.empty-small {
+  text-align: center;
+  color: #909399;
+  padding: 40rpx 0;
+  font-size: 26rpx;
+}
+</style>

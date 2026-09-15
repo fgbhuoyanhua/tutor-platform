@@ -1,0 +1,320 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <view v-if="role == 2" class="workbench">
+      <view class="welcome">
+        <text class="welcome-title">老师工作台</text>
+      </view>
+      <view class="quick-grid">
+        <view class="quick-item" @click="goCalendar">
+          <text class="quick-icon">📅</text>
+          <text class="quick-label">授课日历</text>
+        </view>
+        <view class="quick-item" @click="goStudents">
+          <text class="quick-icon">👥</text>
+          <text class="quick-label">我的学生</text>
+        </view>
+        <view class="quick-item" @click="goOrders">
+          <text class="quick-icon">📋</text>
+          <text class="quick-label">收到的预约</text>
+        </view>
+        <view class="quick-item" @click="goEvals">
+          <text class="quick-icon">⭐</text>
+          <text class="quick-label">学生评价</text>
+        </view>
+        <view class="quick-item" @click="goIncome">
+          <text class="quick-icon">💰</text>
+          <text class="quick-label">收入统计</text>
+        </view>
+      </view>
+    </view>
+
+    <block v-if="role != 2">
+    <text class="page-title">找家教</text>
+    <scroll-view class="filter" scroll-x>
+      <view class="filter-inner">
+        <text
+          :class="['filter-item', subjectId == 0 ? 'active' : '']"
+          @click="selectSubject(0)"
+        >全部</text>
+        <text
+          v-for="(s: UTSJSONObject, i: number) in subjects"
+          :key="i"
+          :class="['filter-item', subjectId == (s['id'] as number) ? 'active' : '']"
+          @click="selectSubject(s['id'] as number)"
+        >{{ s['name'] }}</text>
+      </view>
+    </scroll-view>
+
+    <view class="fav-toggle" @click="toggleFav">
+      <text :class="['checkbox', onlyFav ? 'checkbox-on' : '']">{{ onlyFav ? '☑' : '☐' }}</text>
+      <text class="fav-label">只看我的收藏</text>
+    </view>
+
+    <view v-for="(t: UTSJSONObject, i: number) in list" :key="i" class="card tutor-card" @click="goDetail(t)">
+      <view class="tutor-head">
+        <image v-if="t['avatar'] != null && t['avatar'] != ''" class="avatar" :src="t['avatar']" mode="aspectFill" />
+        <text v-else class="avatar avatar-text">{{ (t['tutorName'] as string).substring(0, 1) }}</text>
+        <view class="tutor-meta">
+          <text class="tutor-name">{{ t['tutorName'] }}</text>
+          <view class="tutor-tags">
+            <text class="tag tag-subject">{{ t['subjectName'] }}</text>
+            <text class="tag">{{ t['grade'] }}</text>
+          </view>
+        </view>
+      </view>
+      <text class="introduce">{{ t['introduce'] }}</text>
+      <view class="tutor-foot">
+        <text class="price">¥{{ t['price'] }}/小时</text>
+        <text class="rating">★ {{ t['rating'] }}</text>
+      </view>
+    </view>
+
+    <text v-if="!loading && list.length == 0" class="empty">暂无符合条件的家教</text>
+    </block>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { pageTutors } from '../../api/tutor'
+import { listSubjects } from '../../api/subject'
+import { listFavorites } from '../../api/favorite'
+import { getToken, getUser } from '../../utils/storage'
+
+export default {
+  data() {
+    return {
+      list: [] as UTSJSONObject[],
+      subjects: [] as UTSJSONObject[],
+      subjectId: 0,
+      loading: false,
+      onlyFav: false,
+      role: 0
+    }
+  },
+  onShow() {
+    if (getToken() == '') {
+      uni.reLaunch({ url: '/pages/auth/login' })
+      return
+    }
+    const u = getUser()
+    this.role = u != null ? (u['role'] as number) : 0
+    if (this.role == 2) {
+      return
+    }
+    this.load()
+  },
+  methods: {
+    async load() {
+      this.loading = true
+      try {
+        if (this.onlyFav) {
+          const res = await listFavorites()
+          this.list = res['list'] as UTSJSONObject[]
+        } else {
+          const subRes = await listSubjects()
+          this.subjects = subRes['list'] as UTSJSONObject[]
+          const params = new Map<string, any>()
+          params.set('page', 1)
+          params.set('size', 20)
+          if (this.subjectId != 0) {
+            params.set('subjectId', this.subjectId)
+          }
+          const res = await pageTutors(params)
+          this.list = res['records'] as UTSJSONObject[]
+        }
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
+    toggleFav() {
+      this.onlyFav = !this.onlyFav
+      this.load()
+    },
+    selectSubject(id: number) {
+      this.subjectId = id
+      this.load()
+    },
+    goDetail(t: UTSJSONObject) {
+      uni.navigateTo({
+        url: '/pages/tutor/detail?id=' + t['id']
+      })
+    },
+    goCalendar() { uni.navigateTo({ url: '/pages/tutor/calendar' }) },
+    goStudents() { uni.navigateTo({ url: '/pages/tutor/students' }) },
+    goOrders() { uni.switchTab({ url: '/pages/order/list' }) },
+    goEvals() { uni.navigateTo({ url: '/pages/tutor/evaluations' }) },
+    goIncome() { uni.navigateTo({ url: '/pages/tutor/income' }) }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background: #f5f7fa;
+}
+.workbench {
+  padding: 20rpx;
+}
+.welcome {
+  padding: 30rpx;
+  background: linear-gradient(135deg, #4f6ef7, #6b8afd);
+  border-radius: 16rpx;
+  margin-bottom: 24rpx;
+}
+.welcome-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #fff;
+}
+.quick-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.quick-item {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx 0;
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  margin-right: 3%;
+}
+.quick-icon {
+  font-size: 48rpx;
+  margin-bottom: 10rpx;
+}
+.quick-label {
+  font-size: 24rpx;
+  color: #333;
+}
+.page-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  padding: 20rpx;
+}
+.filter {
+  background: #ffffff;
+  padding: 20rpx 0;
+}
+.fav-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16rpx 28rpx;
+  background: #ffffff;
+  border-top-width: 1px;
+  border-top-color: #f0f2f5;
+}
+.checkbox {
+  font-size: 32rpx;
+  color: #c0c4cc;
+  margin-right: 12rpx;
+}
+.checkbox-on {
+  color: #f56c6c;
+}
+.fav-label {
+  font-size: 26rpx;
+  color: #606266;
+}
+.filter-inner {
+  display: flex;
+    flex-direction: row;
+  padding: 0 20rpx;
+}
+.filter-item {
+  padding: 10rpx 28rpx;
+  border-radius: 32rpx;
+  background: #f0f2f5;
+  color: #606266;
+  font-size: 26rpx;
+  margin-right: 16rpx;
+}
+.filter-item.active {
+  background: #1f2d3d;
+  color: #ffffff;
+}
+.tutor-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin: 20rpx;
+}
+.tutor-head {
+  display: flex;
+    flex-direction: row;
+  align-items: center;
+}
+.avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: #eef2ff;
+}
+.avatar-text {
+  text-align: center;
+  line-height: 88rpx;
+  font-size: 32rpx;
+  color: #4f6ef7;
+  font-weight: 600;
+}
+.tutor-meta {
+  flex: 1;
+  margin-left: 20rpx;
+}
+.tutor-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.tutor-tags {
+  display: flex;
+    flex-direction: row;
+  margin-top: 10rpx;
+}
+.tag {
+  font-size: 22rpx;
+  color: #909399;
+  background: #f0f2f5;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+}
+.tag-subject {
+  color: #4f6ef7;
+  background: #ecf5ff;
+}
+.introduce {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-top: 16rpx;
+}
+.tutor-foot {
+  display: flex;
+    flex-direction: row;
+  justify-content: space-between;
+  margin-top: 16rpx;
+}
+.price {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #f56c6c;
+}
+.rating {
+  font-size: 26rpx;
+  color: #e6a23c;
+}
+.empty {
+  text-align: center;
+  color: #909399;
+  padding: 120rpx 0;
+  font-size: 28rpx;
+}
+</style>

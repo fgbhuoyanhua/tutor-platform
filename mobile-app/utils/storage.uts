@@ -1,0 +1,30 @@
+const TOKEN_KEY = 'tutor_platform_token'
+const USER_KEY = 'tutor_platform_user'
+
+export function getToken(): string {
+  const v = uni.getStorageSync(TOKEN_KEY)
+  return v == null || v == '' ? '' : (v as string)
+}
+
+export function setToken(token: string): void {
+  uni.setStorageSync(TOKEN_KEY, token)
+}
+
+export function clearToken(): void {
+  uni.removeStorageSync(TOKEN_KEY)
+  uni.removeStorageSync(USER_KEY)
+}
+
+export function getUser(): UTSJSONObject | null {
+  const raw = uni.getStorageSync(USER_KEY)
+  if (raw == null || raw == '') return null
+  try {
+    return JSON.parse(raw as string) as UTSJSONObject
+  } catch (e) {
+    return null
+  }
+}
+
+export function setUser(user: UTSJSONObject): void {
+  uni.setStorageSync(USER_KEY, JSON.stringify(user))
+}

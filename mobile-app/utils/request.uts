@@ -1,0 +1,105 @@
+const BASE_URL = 'http://10.84.64.128:8080/api'
+const TOKEN_KEY = 'tutor_platform_token'
+
+function getToken(): string {
+  const v = uni.getStorageSync(TOKEN_KEY)
+  return v == null || v == '' ? '' : (v as string)
+}
+
+function toJsonData(d: Map<string, any> | null): UTSJSONObject | null {
+  if (d == null) return null
+  const obj = new UTSJSONObject()
+  d.forEach((v: any, k: string) => {
+    obj.set(k, v)
+  })
+  return obj
+}
+
+export function request(
+  method: string,
+  url: string,
+  data: Map<string, any> | null
+): Promise<UTSJSONObject> {
+  return new Promise((resolve, reject) => {
+    const header = new UTSJSONObject()
+    header.set('Content-Type', 'application/json')
+    const token = getToken()
+    if (token != '') {
+      header.set('Authorization', 'Bearer ' + token)
+    }
+    uni.request({
+      url: BASE_URL + url,
+      method: method,
+      data: toJsonData(data),
+      header: header,
+      success: (res) => {
+        const raw = res.data
+        if (raw == null) {
+          reject(new Error('响应为空'))
+          return
+        }
+        let body: UTSJSONObject | null = null
+        if (typeof raw == 'string') {
+          try {
+            body = JSON.parse(raw as string) as UTSJSONObject | null
+          } catch (e) {
+            reject(new Error('JSON解析失败'))
+            return
+          }
+        } else {
+          body = raw as UTSJSONObject | null
+        }
+        if (body == null) {
+          reject(new Error('响应格式错误'))
+          return
+        }
+        const code = body['code'] as number
+        if (code == 200) {
+          const d = body['data']
+          if (d == null) {
+            resolve(new UTSJSONObject())
+          } else if (typeof d == 'object' && !Array.isArray(d)) {
+            resolve(d as UTSJSONObject)
+          } else {
+            const wrap = new UTSJSONObject()
+            wrap.set('list', d)
+            resolve(wrap)
+          }
+        } else {
+          const msg = body['message'] as string
+          reject(new Error(msg))
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络异常: ' + err.errMsg))
+      }
+    })
+  })
+}
+
+export function get(url: string, query: Map<string, any> | null): Promise<UTSJSONObject> {
+  let full = url
+  if (query != null) {
+    const parts: string[] = []
+    query.forEach((v: any, k: string) => {
+      const vs = '' + v
+      parts.push(k + '=' + encodeURIComponent(vs))
+    })
+    if (parts.length > 0) {
+      full = url + '?' + parts.join('&')
+    }
+  }
+  return request('GET', full, null)
+}
+
+export function post(url: string, data: Map<string, any> | UTSJSONObject): Promise<UTSJSONObject> {
+  return request('POST', url, data as Map<string, any>)
+}
+
+export function put(url: string, data: Map<string, any> | UTSJSONObject): Promise<UTSJSONObject> {
+  return request('PUT', url, data as Map<string, any>)
+}
+
+export function del(url: string): Promise<UTSJSONObject> {
+  return request('DELETE', url, null)
+}

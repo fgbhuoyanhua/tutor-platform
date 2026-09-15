@@ -1,0 +1,201 @@
+<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <view class="cal-header">
+      <text class="cal-title">授课日历</text>
+      <view class="cal-nav">
+        <text class="nav-btn" @click="shiftWeek(-1)">上一周</text>
+        <text class="nav-btn" @click="shiftWeek(0)">本周</text>
+        <text class="nav-btn" @click="shiftWeek(1)">下一周</text>
+      </view>
+    </view>
+    <text class="cal-range">{{ weekStart }} ~ {{ weekEnd }}</text>
+
+    <view class="day-col" v-for="(day: UTSJSONObject, i: number) in days" :key="i">
+      <view class="day-head">
+        <text class="week">{{ day['week'] }}</text>
+        <text class="date">{{ day['date'] }}</text>
+      </view>
+      <text v-if="(day['lessons'] as UTSJSONObject[]).length == 0" class="empty-slot">—</text>
+      <view v-for="(l: UTSJSONObject, j: number) in (day['lessons'] as UTSJSONObject[])" :key="j" class="lesson" :class="statusClass(l['status'] as number)">
+        <text class="l-time">{{ l['timeSlot'] }}</text>
+        <text class="l-name">{{ l['studentName'] }} · {{ l['subjectName'] }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { pageOrders } from '../../api/order'
+
+const WEEK_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+export default {
+  data() {
+    return {
+      cursor: 0,
+      allOrders: [] as UTSJSONObject[]
+    }
+  },
+  computed: {
+    days(): UTSJSONObject[] {
+      const result: UTSJSONObject[] = []
+      for (let i = 0; i < 7; i++) {
+        const ts = this.cursor + i * 86400000
+        const key = this.fmt(ts)
+        const lessons: UTSJSONObject[] = []
+        for (let j = 0; j < this.allOrders.length; j++) {
+          const o = this.allOrders[j]
+          const st = o['status'] as number
+          if (o['appointDate'] == key && (st == 1 || st == 2 || st == 3)) {
+            lessons.push(o)
+          }
+        }
+        const day = new UTSJSONObject()
+        day.set('date', key)
+        day.set('week', WEEK_NAMES[this.dayOfWeek(ts)])
+        day.set('lessons', lessons)
+        result.push(day)
+      }
+      return result
+    },
+    weekStart(): string {
+      return this.fmt(this.cursor)
+    },
+    weekEnd(): string {
+      return this.fmt(this.cursor + 6 * 86400000)
+    }
+  },
+  onShow() {
+    this.cursor = this.mondayStart()
+    this.load()
+  },
+  methods: {
+    mondayStart(): number {
+      const now = Date.now()
+      const d = new Date(now)
+      const dow = d.getDay() == 0 ? 7 : d.getDay()
+      const monday = now - (dow - 1) * 86400000
+      const md = new Date(monday)
+      md.setHours(0, 0, 0, 0)
+      return md.getTime()
+    },
+    dayOfWeek(ts: number): number {
+      return new Date(ts).getDay()
+    },
+    fmt(ts: number): string {
+      const d = new Date(ts)
+      const m = (d.getMonth() + 1) < 10 ? '0' + (d.getMonth() + 1) : '' + (d.getMonth() + 1)
+      const dd = d.getDate() < 10 ? '0' + d.getDate() : '' + d.getDate()
+      return d.getFullYear() + '-' + m + '-' + dd
+    },
+    statusClass(s: number): string {
+      if (s == 2) return 'lesson-teaching'
+      if (s == 3) return 'lesson-finished'
+      return 'lesson-booked'
+    },
+    shiftWeek(dir: number) {
+      if (dir == 0) {
+        this.cursor = this.mondayStart()
+      } else {
+        this.cursor = this.cursor + dir * 7 * 86400000
+      }
+    },
+    async load() {
+      try {
+        const params = new Map<string, any>()
+        params.set('page', 1)
+        params.set('size', 200)
+        const res = await pageOrders(params)
+        this.allOrders = res['records'] as UTSJSONObject[]
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  background: #f5f7fa;
+  padding: 20rpx;
+}
+.cal-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+.cal-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.cal-nav {
+  display: flex;
+  flex-direction: row;
+}
+.nav-btn {
+  font-size: 24rpx;
+  color: #4f6ef7;
+  padding: 8rpx 16rpx;
+}
+.cal-range {
+  font-size: 24rpx;
+  color: #909399;
+  margin-bottom: 20rpx;
+}
+.day-col {
+  margin-bottom: 20rpx;
+}
+.day-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12rpx 20rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  margin-bottom: 10rpx;
+}
+.week {
+  font-size: 24rpx;
+  color: #909399;
+  margin-right: 16rpx;
+}
+.date {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.empty-slot {
+  text-align: center;
+  color: #c0c4cc;
+  padding: 20rpx 0;
+  font-size: 24rpx;
+}
+.lesson {
+  padding: 16rpx;
+  border-radius: 12rpx;
+  margin-bottom: 10rpx;
+}
+.lesson-booked {
+  background: #4f6ef7;
+}
+.lesson-teaching {
+  background: #e6a23c;
+}
+.lesson-finished {
+  background: #67c23a;
+}
+.l-time {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #fff;
+}
+.l-name {
+  font-size: 22rpx;
+  color: #fff;
+  margin-top: 4rpx;
+}
+</style>

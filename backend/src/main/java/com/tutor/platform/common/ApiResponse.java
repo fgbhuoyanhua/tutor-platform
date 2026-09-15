@@ -1,0 +1,37 @@
+package com.tutor.platform.common;
+
+import lombok.Data;
+
+/**
+ * 统一返回结构 {code, message, data}
+ */
+@Data
+public class ApiResponse<T> {
+
+    private int code;
+    private String message;
+    private T data;
+
+    public static <T> ApiResponse<T> ok(T data) {
+        ApiResponse<T> r = new ApiResponse<>();
+        r.code = 200;
+        r.message = "success";
+        r.data = data;
+        return r;
+    }
+
+    public static <T> ApiResponse<T> ok() {
+        return ok(null);
+    }
+
+    public static <T> ApiResponse<T> fail(int code, String message) {
+        ApiResponse<T> r = new ApiResponse<>();
+        r.code = code;
+        r.message = message;
+        return r;
+    }
+
+    public static <T> ApiResponse<T> fail(String message) {
+        return fail(500, message);
+    }
+}

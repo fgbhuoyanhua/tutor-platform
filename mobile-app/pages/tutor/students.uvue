@@ -1,0 +1,139 @@
+<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <text class="title">我的学生（{{ list.length }} 人）</text>
+    <text v-if="!loading && list.length == 0" class="empty">还没有上过课的学生</text>
+    <view v-for="(s: UTSJSONObject, i: number) in list" :key="i" class="card">
+      <view class="head">
+        <view class="avatar"><text class="avatar-text">{{ (s['studentName'] as string).substring(0, 1) }}</text></view>
+        <view class="info">
+          <text class="name">{{ s['studentName'] }}</text>
+          <text class="last">最近上课：{{ s['lastDate'] != null ? s['lastDate'] : '—' }}</text>
+        </view>
+      </view>
+      <view class="stats">
+        <view class="stat">
+          <text class="num">{{ s['orderCount'] }}</text>
+          <text class="label">总预约</text>
+        </view>
+        <view class="stat">
+          <text class="num">{{ s['finishedCount'] }}</text>
+          <text class="label">已完成</text>
+        </view>
+        <view class="stat">
+          <text class="num">{{ (s['orderCount'] as number) - (s['finishedCount'] as number) }}</text>
+          <text class="label">待上</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { getMyStudents } from '../../api/tutor'
+
+export default {
+  data() {
+    return {
+      loading: false,
+      list: [] as UTSJSONObject[]
+    }
+  },
+  onShow() {
+    this.load()
+  },
+  methods: {
+    async load() {
+      this.loading = true
+      try {
+        const res = await getMyStudents()
+        this.list = res as UTSJSONObject[]
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  background: #f5f7fa;
+  padding: 20rpx;
+}
+.title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  margin-bottom: 20rpx;
+}
+.empty {
+  text-align: center;
+  color: #909399;
+  padding: 120rpx 0;
+  font-size: 26rpx;
+}
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+.head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  background: #4f6ef7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 600;
+}
+.info {
+  margin-left: 20rpx;
+}
+.name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.last {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 4rpx;
+}
+.stats {
+  display: flex;
+  flex-direction: row;
+  margin-top: 20rpx;
+  border-top-width: 1px;
+  border-top-color: #ebeef5;
+  padding-top: 16rpx;
+}
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #4f6ef7;
+}
+.label {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 4rpx;
+}
+</style>

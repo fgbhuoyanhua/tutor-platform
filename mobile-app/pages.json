@@ -1,0 +1,38 @@
+{
+  "pages": [
+    { "path": "pages/auth/login", "style": { "navigationBarTitleText": "登录" } },
+    { "path": "pages/auth/register", "style": { "navigationBarTitleText": "注册" } },
+    { "path": "pages/home/index", "style": { "navigationBarTitleText": "找家教" } },
+    { "path": "pages/tutor/detail", "style": { "navigationBarTitleText": "老师详情" } },
+    { "path": "pages/tutor/income", "style": { "navigationBarTitleText": "收入统计" } },
+    { "path": "pages/tutor/calendar", "style": { "navigationBarTitleText": "授课日历" } },
+    { "path": "pages/tutor/students", "style": { "navigationBarTitleText": "我的学生" } },
+    { "path": "pages/tutor/evaluations", "style": { "navigationBarTitleText": "学生评价" } },
+    { "path": "pages/order/list", "style": { "navigationBarTitleText": "我的订单" } },
+    { "path": "pages/order/create", "style": { "navigationBarTitleText": "预约老师" } },
+    { "path": "pages/order/reschedule", "style": { "navigationBarTitleText": "申请调课" } },
+    { "path": "pages/message/list", "style": { "navigationBarTitleText": "消息" } },
+    { "path": "pages/message/chat", "style": { "navigationBarTitleText": "聊天" } },
+    { "path": "pages/favorite/list", "style": { "navigationBarTitleText": "我的收藏" } },
+    { "path": "pages/me/index", "style": { "navigationBarTitleText": "我的" } },
+    { "path": "pages/me/password", "style": { "navigationBarTitleText": "修改密码" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "家教预约平台",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#4f6ef7",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/home/index", "text": "首页" },
+      { "pagePath": "pages/message/list", "text": "消息" },
+      { "pagePath": "pages/order/list", "text": "我的订单" },
+      { "pagePath": "pages/me/index", "text": "我的" }
+    ]
+  }
+}

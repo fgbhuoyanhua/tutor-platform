@@ -1,0 +1,149 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <view v-for="(t: UTSJSONObject, i: number) in list" :key="i" class="card tutor-card" @click="goDetail(t)">
+      <view class="head">
+        <image v-if="t['avatar'] != null && t['avatar'] != ''" class="avatar" :src="t['avatar']" mode="aspectFill" />
+        <text v-else class="avatar avatar-text">{{ (t['tutorName'] as string).substring(0, 1) }}</text>
+        <view class="meta">
+          <text class="name">{{ t['tutorName'] }}</text>
+          <view class="tags">
+            <text class="tag tag-subject">{{ t['subjectName'] }}</text>
+            <text class="tag">{{ t['grade'] }}</text>
+          </view>
+        </view>
+        <text class="unfav" @click.stop="unfav(t)">取消</text>
+      </view>
+      <view class="foot">
+        <text class="price">¥{{ t['price'] }}/小时</text>
+        <text class="rating">★ {{ t['rating'] }}</text>
+      </view>
+    </view>
+    <text v-if="!loading && list.length == 0" class="empty">还没收藏老师，去首页看看吧</text>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { listFavorites, removeFavorite } from '../../api/favorite'
+
+export default {
+  data() {
+    return {
+      list: [] as UTSJSONObject[],
+      loading: false
+    }
+  },
+  onShow() {
+    this.load()
+  },
+  methods: {
+    async load() {
+      this.loading = true
+      try {
+        const res = await listFavorites()
+        this.list = res['list'] as UTSJSONObject[]
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
+    goDetail(t: UTSJSONObject) {
+      uni.navigateTo({ url: '/pages/tutor/detail?id=' + t['id'] })
+    },
+    async unfav(t: UTSJSONObject) {
+      try {
+        await removeFavorite(t['id'] as number)
+        this.list = this.list.filter((x: UTSJSONObject) => x['id'] != t['id'])
+        uni.showToast({ title: '已取消收藏', icon: 'none' })
+      } catch (e) {
+        uni.showToast({ title: '操作失败', icon: 'none' })
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background: #f5f7fa;
+  padding: 20rpx;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+}
+.head {
+  display: flex;
+    flex-direction: row;
+  align-items: center;
+}
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  background: #e4e7ed;
+}
+.avatar-text {
+  text-align: center;
+  line-height: 80rpx;
+  font-size: 32rpx;
+  color: #909399;
+}
+.meta {
+  flex: 1;
+  margin-left: 20rpx;
+}
+.name {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.tags {
+  display: flex;
+    flex-direction: row;
+  margin-top: 8rpx;
+}
+.tag {
+  font-size: 22rpx;
+  color: #909399;
+  background: #f0f2f5;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+}
+.tag-subject {
+  color: #4f6ef7;
+  background: #ecf5ff;
+}
+.unfav {
+  font-size: 24rpx;
+  color: #909399;
+  padding: 6rpx 18rpx;
+  border: 1px solid #dcdfe6;
+  border-radius: 24rpx;
+}
+.foot {
+  display: flex;
+    flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16rpx;
+}
+.price {
+  color: #f56c6c;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+.rating {
+  color: #e6a23c;
+  font-size: 26rpx;
+}
+.empty {
+  text-align: center;
+  color: #909399;
+  padding: 120rpx 0;
+  font-size: 28rpx;
+}
+</style>

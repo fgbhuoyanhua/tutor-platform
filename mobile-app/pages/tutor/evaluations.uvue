@@ -1,0 +1,138 @@
+<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <view class="header">
+      <text class="title">学生评价</text>
+      <text v-if="list.length > 0" class="summary">共 {{ list.length }} 条 · 平均分 {{ avgScore }}</text>
+    </view>
+    <text v-if="!loading && list.length == 0" class="empty">还没有学生评价</text>
+    <view v-for="(ev: UTSJSONObject, i: number) in list" :key="i" class="card">
+      <view class="eval-head">
+        <view class="avatar"><text class="avatar-text">{{ (ev['studentName'] as string).substring(0, 1) }}</text></view>
+        <view class="who">
+          <text class="name">{{ ev['studentName'] }}</text>
+          <text class="time">{{ ev['createTime'] }}</text>
+        </view>
+        <text class="score">★ {{ ev['score'] }}</text>
+      </view>
+      <text class="content">{{ ev['content'] != null && ev['content'] != '' ? ev['content'] : '这位学生很优秀' }}</text>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { tutorEvaluations } from '../../api/evaluation'
+import { getUser } from '../../utils/storage'
+
+export default {
+  data() {
+    return {
+      loading: false,
+      list: [] as UTSJSONObject[]
+    }
+  },
+  computed: {
+    avgScore(): string {
+      if (this.list.length == 0) return '-'
+      let sum = 0
+      for (let i = 0; i < this.list.length; i++) {
+        sum += this.list[i]['score'] as number
+      }
+      return (sum / this.list.length).toFixed(1)
+    }
+  },
+  onShow() {
+    this.load()
+  },
+  methods: {
+    async load() {
+      this.loading = true
+      try {
+        const u = getUser()
+        const uid = u!['userId'] as number
+        const res = await tutorEvaluations(uid, 1, 50)
+        this.list = res['records'] as UTSJSONObject[]
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  background: #f5f7fa;
+  padding: 20rpx;
+}
+.header {
+  margin-bottom: 20rpx;
+}
+.title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.summary {
+  font-size: 24rpx;
+  color: #909399;
+  margin-left: 16rpx;
+}
+.empty {
+  text-align: center;
+  color: #909399;
+  padding: 120rpx 0;
+  font-size: 26rpx;
+}
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+.eval-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  background: #4f6ef7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-text {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: 600;
+}
+.who {
+  flex: 1;
+  margin-left: 16rpx;
+}
+.name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.time {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 4rpx;
+}
+.score {
+  font-size: 26rpx;
+  color: #faad14;
+  font-weight: 600;
+}
+.content {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #606266;
+  line-height: 1.6;
+}
+</style>

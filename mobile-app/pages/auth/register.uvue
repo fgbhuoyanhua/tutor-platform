@@ -1,0 +1,105 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <view class="form">
+      <input class="input" v-model="username" placeholder="用户名" />
+      <input class="input" v-model="realName" placeholder="真实姓名" />
+      <input class="input" v-model="password" password placeholder="密码" />
+      <input class="input" v-model="confirmPwd" password placeholder="确认密码" />
+      <view class="role-row">
+        <text class="role-label">身份</text>
+        <view class="role-options">
+          <text :class="['role-item', role == 1 ? 'active' : '']" @click="role = 1">学生</text>
+          <text :class="['role-item', role == 2 ? 'active' : '']" @click="role = 2">老师</text>
+        </view>
+      </view>
+      <button class="btn-register" :loading="loading" @click="doRegister">注册</button>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { register } from '../../api/auth'
+
+export default {
+  data() {
+    return {
+      username: '',
+      realName: '',
+      password: '',
+      confirmPwd: '',
+      role: 1,
+      loading: false
+    }
+  },
+  methods: {
+    async doRegister() {
+      if (this.password != this.confirmPwd) {
+        uni.showToast({ title: '两次密码不一致', icon: 'none' })
+        return
+      }
+      this.loading = true
+      try {
+        await register(this.username.trim(), this.password, this.role, this.realName.trim())
+        uni.showToast({ title: '注册成功，请登录', icon: 'success' })
+        setTimeout(() => {
+          uni.navigateBack()
+        }, 800)
+      } catch (e) {
+        uni.showToast({ title: '注册失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background: #f5f7fa;
+  padding: 40rpx;
+}
+.input {
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  margin-bottom: 24rpx;
+}
+.role-row {
+  display: flex;
+    flex-direction: row;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+.role-label {
+  font-size: 28rpx;
+  color: #6b7280;
+  margin-right: 20rpx;
+}
+.role-options {
+  display: flex;
+    flex-direction: row;
+}
+.role-item {
+  padding: 12rpx 32rpx;
+  border-radius: 8rpx;
+  background: #e5e7eb;
+  font-size: 26rpx;
+  margin-right: 16rpx;
+  color: #6b7280;
+}
+.role-item.active {
+  background: #4f6ef7;
+  color: #ffffff;
+}
+.btn-register {
+  background: #4f6ef7;
+  color: #ffffff;
+  border-radius: 12rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 30rpx;
+}
+</style>

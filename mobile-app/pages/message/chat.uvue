@@ -1,0 +1,160 @@
+﻿<template>
+  <view class="page">
+    <scroll-view class="chat-list" scroll-y :scroll-top="scrollTop">
+      <view
+        v-for="(m: UTSJSONObject, i: number) in list"
+        :key="i"
+        :class="['msg-row', m['isMine'] == true ? 'mine' : 'theirs']"
+      >
+        <view :class="['bubble', m['isMine'] == true ? 'bubble-mine' : 'bubble-theirs']">
+          <text>{{ m['content'] }}</text>
+        </view>
+      </view>
+      <text v-if="list.length == 0" class="empty">开始聊天吧</text>
+    </scroll-view>
+
+    <view class="input-bar">
+      <input
+        class="input"
+        v-model="input"
+        placeholder="输入消息..."
+        confirm-type="send"
+        @confirm="send"
+      />
+      <button class="send-btn" @click="send">发送</button>
+    </view>
+  </view>
+</template>
+
+<script lang="uts">
+import { getConversation, sendMessage } from '../../api/message'
+import { getUser } from '../../utils/storage'
+
+export default {
+  data() {
+    return {
+      otherId: 0,
+      otherName: '',
+      myId: 0,
+      list: [] as UTSJSONObject[],
+      input: '',
+      scrollTop: 0
+    }
+  },
+  onLoad(query: OnLoadOptions) {
+    const otherIdRaw = query['otherId']
+    this.otherId = parseInt(otherIdRaw != null ? otherIdRaw.toString() : '0')
+    const otherName = query['otherName']
+    const raw = otherName != null ? otherName : ''
+    this.otherName = decodeURIComponent(raw).toString()
+    const me = getUser()
+    this.myId = me != null ? (me['userId'] as number) : 0
+    this.load()
+  },
+  methods: {
+    isMine(m: UTSJSONObject): boolean {
+      const fid = m['fromId']
+      if (fid == null) return false
+      return fid == this.myId
+    },
+    async load() {
+      try {
+        const res = await getConversation(this.otherId)
+        const raw = res['list'] as UTSJSONObject[]
+        const arr: UTSJSONObject[] = []
+        for (let i = 0; i < raw.length; i++) {
+          const m = raw[i]
+          const fid = m['fromId']
+          const isMe = fid != null && (fid as number) == this.myId
+          m.set('isMine', isMe)
+          arr.push(m)
+        }
+        this.list = arr
+        this.scrollToBottom()
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+      }
+    },
+    scrollToBottom() {
+      setTimeout(() => {
+        this.scrollTop = 99999
+      }, 100)
+    },
+    async send() {
+      const content = this.input.trim()
+      if (content == '') return
+      this.input = ''
+      try {
+        await sendMessage(this.otherId, content)
+        await this.load()
+      } catch (e) {
+        uni.showToast({ title: '发送失败', icon: 'none' })
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  height: 700px;
+  background: #f5f7fa;
+}
+.chat-list {
+  height:520px;
+  padding: 20rpx;
+}
+.msg-row {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 20rpx;
+}
+.msg-row.mine {
+  justify-content: flex-end;
+}
+.bubble {
+  max-width: 500rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 16rpx;
+}
+.bubble-mine {
+  background: #4f6ef7;
+  color: #ffffff;
+}
+.bubble-theirs {
+  background: #ffffff;
+  color: #333;
+}
+.empty {
+  text-align: center;
+  color: #909399;
+  padding: 120rpx 0;
+  font-size: 26rpx;
+}
+.input-bar {
+  display: flex;
+  flex-direction: row;
+  padding: 16rpx 20rpx;
+  background: #ffffff;
+  align-items: center;
+}
+.input {
+  flex: 1;
+  background: #f0f2f5;
+  border-radius: 32rpx;
+  padding: 16rpx 24rpx;
+  font-size: 26rpx;
+  height: 64rpx;
+}
+.send-btn {
+  background: #4f6ef7;
+  color: #ffffff;
+  border-radius: 32rpx;
+  margin-left: 16rpx;
+  padding: 0 32rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 26rpx;
+  min-width: 120rpx;
+}
+</style>

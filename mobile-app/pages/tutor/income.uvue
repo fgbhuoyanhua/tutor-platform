@@ -1,0 +1,132 @@
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+    <view class="month-bar">
+      <text class="month-prev" @click="changeMonth(-1)">‹</text>
+      <text class="month-text">{{ month }}</text>
+      <text class="month-next" @click="changeMonth(1)">›</text>
+    </view>
+
+    <view class="card stat-card">
+      <view class="stat-item">
+        <text class="stat-num">{{ income != null ? (income!['totalIncome'] as number).toFixed(2) : '--' }}</text>
+        <text class="stat-label">本月收入（元）</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-num">{{ income != null ? income!['orderCount'] : '--' }}</text>
+        <text class="stat-label">完成订单数</text>
+      </view>
+    </view>
+
+    <text v-if="loading" class="tip">加载中...</text>
+    <text v-else-if="income == null" class="tip">该月暂无完成订单</text>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { getTutorIncome } from '../../api/tutor'
+
+function pad(n: number): string {
+  return n < 10 ? '0' + n : '' + n
+}
+
+export default {
+  data() {
+    const now = new Date()
+    return {
+      month: (now.getFullYear() + '-' + pad(now.getMonth() + 1)) as string,
+      income: null as UTSJSONObject | null,
+      loading: false
+    }
+  },
+  onShow() {
+    this.load()
+  },
+  methods: {
+    changeMonth(delta: number) {
+      const parts = this.month.split('-', 2)
+      const y = parseInt(parts[0].toString())
+      const m = parseInt(parts[1].toString()) + delta
+      if (m <= 0) {
+        this.month = (y - 1) + '-12'
+      } else if (m > 12) {
+        this.month = (y + 1) + '-01'
+      } else {
+        this.month = y + '-' + pad(m)
+      }
+      this.load()
+    },
+    async load() {
+      this.loading = true
+      try {
+        this.income = await getTutorIncome(this.month)
+      } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' })
+        this.income = null
+      } finally {
+        this.loading = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background: #f5f7fa;
+  padding: 24rpx;
+}
+.month-bar {
+  display: flex;
+    flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 20rpx 0;
+}
+.month-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+.month-prev,
+.month-next {
+  font-size: 40rpx;
+  color: #4f6ef7;
+  padding: 0 20rpx;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+}
+.stat-card {
+  display: flex;
+    flex-direction: row;
+  padding: 40rpx 24rpx;
+  justify-content: space-around;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stat-num {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #1f2d3d;
+}
+.stat-label {
+  font-size: 24rpx;
+  color: #909399;
+  margin-top: 8rpx;
+}
+.tip {
+  text-align: center;
+  color: #909399;
+  padding: 80rpx 0;
+  font-size: 28rpx;
+}
+</style>

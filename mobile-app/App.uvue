@@ -1,0 +1,28 @@
+<script>
+export default {
+  onLaunch() {
+    console.log('家教预约平台移动端启动')
+  }
+}
+</script>
+
+<style>
+/* 全局基础样式：只放所有页面都会用到的 */
+.page {
+  background-color: #f5f7fa;
+  /* 不要写 height / min-height / overflow: hidden，否则会破坏页面原生滚动 */
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin: 20rpx;
+}
+
+.btn-primary {
+  background-color: #4f6ef7;
+  color: #ffffff;
+  border-radius: 12rpx;
+}
+</style>
