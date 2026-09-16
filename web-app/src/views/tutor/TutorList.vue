@@ -36,7 +36,7 @@
               <div class="tutor-name link" @click="openDetail(t)">{{ t.tutorName }}</div>
               <div class="tutor-subject">
                 <el-tag size="small" type="success">{{ t.subjectName }}</el-tag>
-                <span class="grade">{{ t.grade }}</span>
+                <span class="grade">擅长{{ t.grade }}</span>
               </div>
             </div>
           </div>
