@@ -1,7 +1,27 @@
 <script>
 export default {
-  onLaunch() {
+  async onLaunch() {
     console.log('家教预约平台移动端启动')
+    // 开发期自动登录 student01
+    const existing = uni.getStorageSync('tutor_platform_token')
+    if (!existing) {
+      try {
+        const res = await uni.request({
+          url: 'http://10.84.64.128:8080/api/auth/login',
+          method: 'POST',
+          header: { 'Content-Type': 'application/json' },
+          data: { username: 'student01', password: '123456' }
+        })
+        const body = res.data as any
+        if (body.code == 200) {
+          uni.setStorageSync('tutor_platform_token', body.data.token)
+          uni.setStorageSync('tutor_platform_user', body.data.user)
+          console.log('自动登录成功')
+        }
+      } catch (e) {
+        console.log('自动登录失败', e)
+      }
+    }
   }
 }
 </script>

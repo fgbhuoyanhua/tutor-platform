@@ -1,7 +1,7 @@
 <template>
   <el-container class="layout">
     <el-aside width="220px" class="aside">
-      <div class="logo">家教预约平台</div>
+      <div class="logo">青蓝 · 家教平台</div>
       <el-menu :default-active="activePath" router background-color="#1f2d3d" text-color="#bfcbd9" active-text-color="#409eff">
         <el-menu-item index="/home">
           <el-icon><HomeFilled /></el-icon>
