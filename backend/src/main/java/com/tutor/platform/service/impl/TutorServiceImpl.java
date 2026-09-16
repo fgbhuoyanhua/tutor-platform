@@ -144,6 +144,20 @@ public class TutorServiceImpl implements TutorService {
         }
     }
 
+    @Override
+    public List<TutorVO> recommend(Long subjectId, BigDecimal priceMax, int limit) {
+        LambdaQueryWrapper<TutorEntity> qw = new LambdaQueryWrapper<>();
+        qw.eq(TutorEntity::getStatus, 1)
+           .eq(subjectId != null, TutorEntity::getSubjectId, subjectId)
+           .le(priceMax != null, TutorEntity::getPrice, priceMax)
+           .orderByDesc(TutorEntity::getRating)
+           .last("LIMIT " + limit);
+        List<TutorEntity> list = tutorMapper.selectList(qw);
+        Map<Long, Long> evalCount = countMap(evaluationMapper.countGroupByTutorIds(userIds(list)), list);
+        Map<Long, Long> finishedCount = countMap(appointmentMapper.countFinishedGroupByTutorIds(userIds(list)), list);
+        return list.stream().map(t -> toVO(t, evalCount, finishedCount)).collect(Collectors.toList());
+    }
+
     /** 提取家教记录中的老师 user.id 列表（去重） */
     private List<Long> userIds(List<TutorEntity> records) {
         return records.stream()

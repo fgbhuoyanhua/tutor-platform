@@ -24,5 +24,8 @@ public class EvaluationVO {
 
     private String content;
 
+    /** 老师回复 */
+    private String reply;
+
     private LocalDateTime createTime;
 }

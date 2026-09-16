@@ -28,4 +28,7 @@ public interface TutorService {
 
     /** 管理员审核：0待审核 → 1通过 / 3驳回 */
     void audit(Long id, boolean pass, String reason);
+
+    /** 智能推荐：按科目+价格+评分推荐老师 */
+    List<TutorVO> recommend(Long subjectId, BigDecimal priceMax, int limit);
 }

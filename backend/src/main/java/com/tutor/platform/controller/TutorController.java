@@ -63,6 +63,14 @@ public class TutorController {
         return ApiResponse.ok(orderService.myStudents(UserContext.getUid()));
     }
 
+    @Operation(summary = "智能推荐老师（按科目+价格+评分）")
+    @GetMapping("/recommend")
+    public ApiResponse<java.util.List<TutorVO>> recommend(@RequestParam(required = false) Long subjectId,
+                                                          @RequestParam(required = false) BigDecimal priceMax,
+                                                          @RequestParam(defaultValue = "3") int limit) {
+        return ApiResponse.ok(tutorService.recommend(subjectId, priceMax, limit));
+    }
+
     @Operation(summary = "家教信息详情（公开）")
     @GetMapping("/{id}")
     public ApiResponse<TutorVO> detail(@PathVariable Long id) {

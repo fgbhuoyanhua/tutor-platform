@@ -46,6 +46,22 @@
         <view v-if="!isTutor && o['status'] == 3 && evalTargetId != o['id']">
           <button class="btn-sm btn-primary" @click="openEval(o)">评价</button>
         </view>
+        <view v-if="isTutor && o['status'] == 3">
+          <button class="btn-sm btn-primary" @click="openReport(o)">写报告</button>
+        </view>
+        <view v-if="!isTutor && o['status'] == 3">
+          <button class="btn-sm btn-success" @click="viewReport(o)">学习报告</button>
+        </view>
+      </view>
+
+      <view v-if="reportTargetId == o['id']" class="eval-panel">
+        <text class="eval-label">{{ reportMode == 'write' ? '写学习报告' : '学习报告' }}</text>
+        <input v-if="reportMode == 'write'" class="eval-input" v-model="reportContent" placeholder="本节课学习内容、课堂表现..." />
+        <text v-else class="report-view">{{ reportContent || '暂无报告' }}</text>
+        <view class="eval-actions">
+          <button class="btn-sm btn-cancel" @click="closeReport">关闭</button>
+          <button v-if="reportMode == 'write'" class="btn-sm btn-success" @click="submitReport(o)">提交</button>
+        </view>
       </view>
 
       <view v-if="evalTargetId == o['id']" class="eval-panel">
@@ -80,6 +96,7 @@
 <script lang="uts">
 import { pageOrders, confirmOrder, rejectOrder, cancelOrder, finishOrder, startOrder, rescheduleAccept, rescheduleReject } from '../../api/order'
 import { submitEvaluation } from '../../api/evaluation'
+import { submitReport, getReport } from '../../api/tutor'
 import { orderStatusLabel } from '../../constants'
 import { getUser } from '../../utils/storage'
 
@@ -92,7 +109,10 @@ export default {
       evalTargetId: -1,
       evalScore: 5,
       evalContent: '',
-      starList: [1, 2, 3, 4, 5] as number[]
+      starList: [1, 2, 3, 4, 5] as number[],
+      reportTargetId: -1,
+      reportMode: 'write',
+      reportContent: ''
     }
   },
   onShow() {
@@ -123,6 +143,38 @@ export default {
     },
     closeEval() {
       this.evalTargetId = -1
+    },
+    openReport(o: UTSJSONObject) {
+      this.reportTargetId = o['id'] as number
+      this.reportMode = 'write'
+      this.reportContent = ''
+    },
+    async viewReport(o: UTSJSONObject) {
+      this.reportTargetId = o['id'] as number
+      this.reportMode = 'view'
+      this.reportContent = ''
+      try {
+        const res = await getReport(o['id'] as number)
+        this.reportContent = res['content'] as string
+      } catch (e) {
+        this.reportContent = '暂无报告'
+      }
+    },
+    closeReport() {
+      this.reportTargetId = -1
+    },
+    async submitReport(o: UTSJSONObject) {
+      if (this.reportContent == '') {
+        uni.showToast({ title: '请填写报告内容', icon: 'none' })
+        return
+      }
+      try {
+        await submitReport(o['id'] as number, this.reportContent)
+        uni.showToast({ title: '报告已提交', icon: 'success' })
+        this.closeReport()
+      } catch (e) {
+        uni.showToast({ title: '提交失败', icon: 'none' })
+      }
     },
     async submitEval(o: UTSJSONObject) {
       if (this.evalContent.length > 500) {
@@ -335,6 +387,15 @@ export default {
   display: flex;
     flex-direction: row;
   justify-content: flex-end;
+}
+.report-view {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.8;
+  padding: 16rpx;
+  background: #f5f7fa;
+  border-radius: 8rpx;
+  margin-bottom: 16rpx;
 }
 .empty {
   text-align: center;

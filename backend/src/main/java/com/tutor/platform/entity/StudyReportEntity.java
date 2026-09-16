@@ -8,28 +8,23 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 评价表
+ * 课后学习报告表
  */
 @Data
-@TableName("evaluation")
-public class EvaluationEntity {
+@TableName("study_report")
+public class StudyReportEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long orderId;
 
+    private Long teacherId;
+
     private Long studentId;
 
-    private Long tutorId;
-
-    /** 评分1-5 */
-    private Integer score;
-
+    /** 学习内容/课堂表现 */
     private String content;
-
-    /** 老师回复 */
-    private String reply;
 
     private LocalDateTime createTime;
 }

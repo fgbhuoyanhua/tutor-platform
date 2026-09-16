@@ -65,6 +65,7 @@ export interface EvaluationVO {
   studentName: string;
   score: number;
   content: string;
+  reply?: string;
   createTime: string;
 }
 

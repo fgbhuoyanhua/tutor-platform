@@ -95,6 +95,7 @@ public class EvaluationServiceImpl implements EvaluationService {
                 .studentName(stu == null ? null : stu.getRealName())
                 .score(e.getScore())
                 .content(e.getContent())
+                .reply(e.getReply())
                 .createTime(e.getCreateTime())
                 .build();
     }

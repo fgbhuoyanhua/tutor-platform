@@ -16,6 +16,9 @@
         <el-form-item>
           <el-checkbox v-model="onlyFav" @change="onFavFilterChange">只看我的收藏</el-checkbox>
         </el-form-item>
+        <el-form-item>
+          <el-button type="success" @click="openRecommend">智能推荐</el-button>
+        </el-form-item>
       </el-form>
     </el-card>
 
@@ -59,6 +62,20 @@
       :current-page="query.page"
       @current-change="load"
     />
+
+    <el-dialog v-model="recommendVisible" title="智能推荐老师" width="600px">
+      <div v-if="recommendLoading" v-loading="true" style="height:200px"></div>
+      <div v-else-if="recommendList.length === 0" class="ev-empty">暂无推荐老师</div>
+      <div v-else>
+        <div v-for="t in recommendList" :key="t.id" class="rec-item" @click="openDetail(t)">
+          <el-avatar :size="40" :src="t.avatar || undefined">{{ (t.tutorName||'?')[0] }}</el-avatar>
+          <div style="flex:1;margin-left:12px">
+            <div style="font-weight:600">{{ t.tutorName }} <el-tag size="small" type="success">{{ t.subjectName }}</el-tag></div>
+            <div style="color:#909399;font-size:12px">★{{ t.rating }} · ¥{{ t.price }}/小时 · {{ t.finishedOrderCount||0 }}次授课</div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
 
     <el-dialog v-model="orderVisible" title="预约家教" width="460px">
       <el-form label-width="80px">
@@ -116,6 +133,7 @@
               <el-rate :model-value="ev.score" disabled readonly size="12" />
             </div>
             <p class="ev-content">{{ ev.content }}</p>
+            <div v-if="ev.reply" class="ev-reply"><b>老师回复：</b>{{ ev.reply }}</div>
             <span class="ev-time">{{ formatDateTime(ev.createTime) }}</span>
           </div>
         </div>
@@ -141,6 +159,7 @@ import {
   addFavorite,
   removeFavorite,
   listFavorites,
+  recommendTutors,
   TIME_SLOTS,
   formatPrice,
   formatDateTime,
@@ -160,6 +179,10 @@ const query = reactive({ page: 1, size: 9, subjectId: undefined as number | unde
 
 const onlyFav = ref(false);
 const favIds = ref<Set<number>>(new Set());
+
+const recommendVisible = ref(false);
+const recommendLoading = ref(false);
+const recommendList = ref<TutorVO[]>([]);
 
 const orderVisible = ref(false);
 const submitting = ref(false);
@@ -254,6 +277,18 @@ async function loadFavIds() {
 function onFavFilterChange() {
   total.value = 0;
   load(1);
+}
+
+async function openRecommend() {
+  recommendVisible.value = true;
+  recommendLoading.value = true;
+  try {
+    recommendList.value = await recommendTutors(query.subjectId, undefined, 3);
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    recommendLoading.value = false;
+  }
 }
 
 async function toggleFav(t: TutorVO) {
@@ -416,6 +451,14 @@ async function submitOrder() {
   font-size: 13px;
   line-height: 1.6;
 }
+.ev-reply {
+  margin: 4px 0;
+  padding: 6px 10px;
+  background: #f0f9eb;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #67c23a;
+}
 .ev-time {
   font-size: 12px;
   color: #909399;
@@ -480,5 +523,15 @@ async function submitOrder() {
 .pager {
   margin-top: 8px;
   justify-content: flex-end;
+}
+.rec-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #ebeef5;
+  cursor: pointer;
+}
+.rec-item:hover {
+  background: #f5f7fa;
 }
 </style>

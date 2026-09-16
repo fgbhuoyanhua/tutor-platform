@@ -50,6 +50,10 @@
       <text class="fav-label">只看我的收藏</text>
     </view>
 
+    <view class="rec-btn" @click="loadRecommend">
+      <text class="rec-btn-text">🤖 智能推荐老师</text>
+    </view>
+
     <view v-for="(t: UTSJSONObject, i: number) in list" :key="i" class="card tutor-card" @click="goDetail(t)">
       <view class="tutor-head">
         <image v-if="t['avatar'] != null && t['avatar'] != ''" class="avatar" :src="t['avatar']" mode="aspectFill" />
@@ -75,7 +79,7 @@
 </template>
 
 <script lang="uts">
-import { pageTutors } from '../../api/tutor'
+import { pageTutors, recommendTutors } from '../../api/tutor'
 import { listSubjects } from '../../api/subject'
 import { listFavorites } from '../../api/favorite'
 import { getToken, getUser } from '../../utils/storage'
@@ -131,6 +135,16 @@ export default {
     toggleFav() {
       this.onlyFav = !this.onlyFav
       this.load()
+    },
+    async loadRecommend() {
+      try {
+        const res = await recommendTutors(this.subjectId, 3)
+        this.list = res['list'] as UTSJSONObject[]
+        this.onlyFav = false
+        uni.showToast({ title: '已为您推荐老师', icon: 'none' })
+      } catch (e) {
+        uni.showToast({ title: '推荐失败', icon: 'none' })
+      }
     },
     selectSubject(id: number) {
       this.subjectId = id
@@ -223,6 +237,18 @@ export default {
 .fav-label {
   font-size: 26rpx;
   color: #606266;
+}
+.rec-btn {
+  margin: 16rpx 20rpx;
+  padding: 20rpx;
+  background: linear-gradient(135deg, #67c23a, #85ce61);
+  border-radius: 16rpx;
+  text-align: center;
+}
+.rec-btn-text {
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
 }
 .filter-inner {
   display: flex;

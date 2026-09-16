@@ -39,3 +39,23 @@ export function getIncomeTrend(): Promise<IncomeVO[]> {
 export function getMyStudents(): Promise<MyStudentVO[]> {
   return get<MyStudentVO[]>('/tutors/my-students');
 }
+
+/** 智能推荐老师 */
+export function recommendTutors(subjectId?: number, priceMax?: number, limit = 3): Promise<TutorVO[]> {
+  return get<TutorVO[]>('/tutors/recommend', { subjectId, priceMax, limit });
+}
+
+/** 老师回复评价 */
+export function replyEvaluation(id: number, reply: string): Promise<void> {
+  return put<void>(`/evaluations/${id}/reply`, { reply });
+}
+
+/** 老师提交课后学习报告 */
+export function submitReport(orderId: number, content: string): Promise<void> {
+  return post<void>('/reports', { orderId, content });
+}
+
+/** 学生查看学习报告 */
+export function getReport(orderId: number): Promise<{ id: number; content: string; createTime: string } | null> {
+  return get(`/reports/${orderId}`);
+}

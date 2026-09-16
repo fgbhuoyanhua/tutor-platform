@@ -37,7 +37,9 @@
                 <el-button link type="success" size="small" @click="doAction(row, 'rsAccept')">同意调课</el-button>
                 <el-button link type="warning" size="small" @click="doAction(row, 'rsReject')">拒绝调课</el-button>
               </template>
+              <el-button v-if="row.status === 3" link type="primary" size="small" @click="openReport(row)">写报告</el-button>
             </template>
+            <el-button v-if="userStore.isStudent && row.status === 3" link type="primary" size="small" @click="viewReport(row)">学习报告</el-button>
             <span v-if="!canOperate(row)" class="noop">—</span>
           </template>
         </el-table-column>
@@ -74,6 +76,15 @@
         <el-button type="primary" :loading="rsSubmitting" @click="submitReschedule">提交申请</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="reportVisible" :title="reportMode === 'write' ? '写学习报告' : '学习报告'" width="500px">
+      <el-input v-if="reportMode === 'write'" v-model="reportContent" type="textarea" :rows="6" placeholder="本节课学习内容、课堂表现、作业情况等..." />
+      <div v-else style="white-space:pre-wrap;line-height:1.8">{{ reportContent || '暂无报告' }}</div>
+      <template #footer>
+        <el-button @click="reportVisible = false">关闭</el-button>
+        <el-button v-if="reportMode === 'write'" type="primary" @click="submitReport">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -93,6 +104,8 @@ import {
   orderStatusLabel,
   formatPrice,
   formatDateTime,
+  submitReport as apiSubmitReport,
+  getReport,
   type OrderVO,
 } from '@tutor-platform/frontend-common';
 import { useUserStore } from '@/stores/user';
@@ -107,6 +120,11 @@ const rsVisible = ref(false);
 const rsSubmitting = ref(false);
 const currentOrder = ref<OrderVO | null>(null);
 const rsForm = reactive({ newDate: '', newSlot: '' });
+
+const reportVisible = ref(false);
+const reportMode = ref<'write' | 'view'>('write');
+const reportContent = ref('');
+const reportOrderId = ref(0);
 
 const ACTIONS: Record<string, { title: string; text: string; fn: (id: number) => Promise<void> }> = {
   confirm: { title: '接单', text: '确认接单后不可撤销，确定接单吗？', fn: confirmOrder },
@@ -141,6 +159,40 @@ function openReschedule(row: OrderVO) {
   rsForm.newDate = '';
   rsForm.newSlot = '';
   rsVisible.value = true;
+}
+
+function openReport(row: OrderVO) {
+  reportMode.value = 'write';
+  reportContent.value = '';
+  reportOrderId.value = row.id;
+  reportVisible.value = true;
+}
+
+async function viewReport(row: OrderVO) {
+  reportMode.value = 'view';
+  reportOrderId.value = row.id;
+  reportContent.value = '';
+  reportVisible.value = true;
+  try {
+    const r = await getReport(row.id);
+    reportContent.value = r?.content || '';
+  } catch {
+    reportContent.value = '暂无报告';
+  }
+}
+
+async function submitReport() {
+  if (!reportContent.value.trim()) {
+    ElMessage.warning('请填写报告内容');
+    return;
+  }
+  try {
+    await apiSubmitReport(reportOrderId.value, reportContent.value);
+    ElMessage.success('报告已提交');
+    reportVisible.value = false;
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
 }
 
 async function submitReschedule() {
