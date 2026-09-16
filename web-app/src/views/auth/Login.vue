@@ -73,29 +73,65 @@ async function onSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1f2d3d 0%, #409eff 100%);
+  background: linear-gradient(135deg, #1a1d2e 0%, #4f6ef7 50%, #6b8afd 100%);
+  position: relative;
+  overflow: hidden;
+}
+.auth-page::before {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  top: -200px;
+  right: -200px;
+}
+.auth-page::after {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  bottom: -100px;
+  left: -100px;
 }
 .auth-card {
-  width: 400px;
-  padding: 12px 8px;
+  width: 420px;
+  padding: 40px 36px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(10px);
 }
 .title {
   text-align: center;
-  margin: 0 0 24px;
-  color: #333;
+  margin: 0 0 32px;
+  color: #1a1b1c;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 .submit {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 12px;
+  border-radius: 10px;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
 }
 .links {
   text-align: center;
-  margin-top: 14px;
+  margin-top: 16px;
 }
 .demo-tip {
-  margin-top: 20px;
+  margin-top: 24px;
+  border-radius: 8px;
 }
 .demo-tip p {
   margin: 2px 0;
+  font-size: 12px;
 }
 </style>

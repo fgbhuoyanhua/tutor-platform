@@ -203,26 +203,51 @@ function onCommand(cmd: string) {
   height: 100%;
 }
 .aside {
-  background: #1f2d3d;
+  background: linear-gradient(180deg, #1a1d2e 0%, #252a42 100%);
+  box-shadow: 2px 0 12px rgba(0,0,0,0.1);
 }
 .logo {
-  height: 56px;
-  line-height: 56px;
+  height: 64px;
+  line-height: 64px;
   text-align: center;
   color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  background: #17212f;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .aside :deep(.el-menu) {
   border-right: none;
+  background: transparent;
+}
+.aside :deep(.el-menu-item) {
+  color: #a0aec0;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  margin: 4px 12px;
+  height: 44px;
+  line-height: 44px;
+}
+.aside :deep(.el-menu-item:hover) {
+  background: rgba(79,110,247,0.15);
+  color: #fff;
+}
+.aside :deep(.el-menu-item.is-active) {
+  background: linear-gradient(135deg, #4f6ef7, #6b8afd);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(79,110,247,0.35);
 }
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 24px;
+  height: 60px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 .header-right {
   display: flex;
@@ -244,7 +269,7 @@ function onCommand(cmd: string) {
   font-weight: 600;
 }
 .notify-item {
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #f0f0f0;
 }
 .notify-item.unread {
@@ -271,8 +296,9 @@ function onCommand(cmd: string) {
   padding: 16px 0;
 }
 .page-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
 }
 .user-info {
   display: inline-flex;
@@ -280,12 +306,18 @@ function onCommand(cmd: string) {
   gap: 6px;
   cursor: pointer;
   color: #333;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.user-info:hover {
+  background: #f5f7fa;
 }
 .role-tag {
   margin-left: 4px;
 }
 .main {
-  background: #f5f7fa;
-  padding: 20px;
+  background: var(--bg);
+  padding: 24px;
 }
 </style>

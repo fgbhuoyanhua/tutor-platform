@@ -348,23 +348,36 @@ async function submitOrder() {
 
 <style scoped>
 .filter-card {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  border-radius: var(--radius);
 }
 .tutor-col {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .tutor-card {
-  height: 220px;
+  height: 230px;
   position: relative;
+  border-radius: var(--radius);
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+.tutor-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
 }
 .fav-icon {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  font-size: 20px;
-  color: #c0c4cc;
+  top: 14px;
+  right: 14px;
+  font-size: 22px;
+  color: #d1d5db;
   cursor: pointer;
   z-index: 1;
+  transition: all 0.2s;
+}
+.fav-icon:hover {
+  transform: scale(1.15);
 }
 .fav-icon.fav {
   color: #f56c6c;
@@ -375,14 +388,14 @@ async function submitOrder() {
   gap: 12px;
 }
 .tutor-name {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
 }
 .tutor-name.link {
   cursor: pointer;
 }
 .tutor-name.link:hover {
-  color: #409eff;
+  color: var(--primary);
 }
 .detail-head {
   display: flex;
@@ -391,8 +404,8 @@ async function submitOrder() {
   margin-bottom: 18px;
 }
 .detail-name {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 700;
   margin-bottom: 4px;
 }
 .detail-stats {
@@ -402,39 +415,40 @@ async function submitOrder() {
 }
 .detail-stats .stat {
   flex: 1;
-  background: #f7f8fa;
-  border-radius: 8px;
-  padding: 10px 6px;
+  background: linear-gradient(135deg, #f8faff, #f0f4ff);
+  border-radius: 10px;
+  padding: 12px 6px;
   text-align: center;
 }
 .stat b {
   display: block;
-  font-size: 15px;
-  color: #1a1b1c;
+  font-size: 16px;
+  color: var(--text);
 }
 .stat b em {
   font-style: normal;
   font-size: 11px;
-  color: #909399;
+  color: var(--text-muted);
   font-weight: 400;
 }
 .stat span {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 .detail-sec {
-  margin: 16px 0 8px;
-  font-size: 14px;
+  margin: 18px 0 8px;
+  font-size: 15px;
+  font-weight: 600;
 }
 .detail-intro {
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
   white-space: pre-wrap;
 }
 .ev-item {
-  border-bottom: 1px solid #ebeef5;
-  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0;
 }
 .ev-top {
   display: flex;
@@ -447,31 +461,32 @@ async function submitOrder() {
 }
 .ev-content {
   margin: 6px 0;
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
 .ev-reply {
-  margin: 4px 0;
-  padding: 6px 10px;
-  background: #f0f9eb;
-  border-radius: 4px;
+  margin: 6px 0;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border-left: 3px solid var(--success);
+  border-radius: 0 8px 8px 0;
   font-size: 12px;
-  color: #67c23a;
+  color: #166534;
 }
 .ev-time {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-muted);
 }
 .ev-empty {
-  color: #909399;
+  color: var(--text-muted);
   font-size: 13px;
   padding: 12px 0;
 }
 .detail-actions {
   display: flex;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 .detail-actions .el-button {
   flex: 1;
@@ -483,11 +498,11 @@ async function submitOrder() {
   margin-top: 4px;
 }
 .grade {
-  color: #909399;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .introduce {
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 13px;
   height: 40px;
   line-height: 20px;
@@ -502,23 +517,25 @@ async function submitOrder() {
   align-items: baseline;
 }
 .price {
-  color: #f56c6c;
-  font-size: 20px;
-  font-weight: 700;
+  color: var(--danger);
+  font-size: 22px;
+  font-weight: 800;
 }
 .price em {
   font-style: normal;
   font-size: 12px;
   font-weight: 400;
-  color: #909399;
+  color: var(--text-muted);
 }
 .rating {
-  color: #e6a23c;
+  color: var(--warning);
+  font-weight: 600;
 }
 .order-btn {
   position: absolute;
   right: 16px;
   bottom: 14px;
+  border-radius: 20px;
 }
 .pager {
   margin-top: 8px;
@@ -527,11 +544,12 @@ async function submitOrder() {
 .rec-item {
   display: flex;
   align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #ebeef5;
+  padding: 14px;
+  border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
+  transition: background 0.2s;
 }
 .rec-item:hover {
-  background: #f5f7fa;
+  background: #f8faff;
 }
 </style>
