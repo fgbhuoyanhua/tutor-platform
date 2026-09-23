@@ -1,5 +1,5 @@
 import { get, post, put } from './request';
-import type { IncomeVO, MyStudentVO, PageResult, TutorVO, TutorDTO } from '../models';
+import type { IncomeVO, MyStudentVO, PageResult, TutorDashboardVO, TutorVO, TutorDTO } from '../models';
 
 export interface TutorQuery {
   page?: number;
@@ -33,6 +33,11 @@ export function updateTutor(id: number, data: TutorDTO): Promise<void> {
 /** 老师近6个月收入趋势 */
 export function getIncomeTrend(): Promise<IncomeVO[]> {
   return get<IncomeVO[]>('/tutors/income/trend');
+}
+
+/** 老师端数据看板 */
+export function getTutorDashboard(): Promise<TutorDashboardVO> {
+  return get<TutorDashboardVO>('/tutors/dashboard');
 }
 
 /** 老师的我的学生列表 */

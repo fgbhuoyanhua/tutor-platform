@@ -10,6 +10,7 @@ import com.tutor.platform.service.OrderService;
 import com.tutor.platform.service.TutorService;
 import com.tutor.platform.vo.IncomeVO;
 import com.tutor.platform.vo.MyStudentVO;
+import com.tutor.platform.vo.TutorDashboardVO;
 import com.tutor.platform.vo.TutorVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,6 +55,13 @@ public class TutorController {
     @RequireRole({UserContext.ROLE_TUTOR})
     public ApiResponse<java.util.List<IncomeVO>> incomeTrend() {
         return ApiResponse.ok(orderService.incomeLast6Months(UserContext.getUid()));
+    }
+
+    @Operation(summary = "老师端数据看板（收入/订单/趋势/学科分布/状态分布）")
+    @GetMapping("/dashboard")
+    @RequireRole({UserContext.ROLE_TUTOR})
+    public ApiResponse<TutorDashboardVO> dashboard() {
+        return ApiResponse.ok(orderService.dashboard(UserContext.getUid()));
     }
 
     @Operation(summary = "老师的我的学生列表")

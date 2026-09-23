@@ -30,6 +30,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         boolean publicGet = HttpMethod.GET.matches(request.getMethod())
                 && !uri.startsWith("/api/tutors/income")
                 && !uri.startsWith("/api/tutors/my-students")
+                && !uri.startsWith("/api/tutors/dashboard")
                 && (uri.equals("/api/tutors") || uri.startsWith("/api/tutors/")
                 || uri.equals("/api/evaluations/tutor/") || uri.startsWith("/api/evaluations/tutor/"));
         if (publicGet) {

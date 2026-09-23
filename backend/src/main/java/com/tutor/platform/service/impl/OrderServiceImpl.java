@@ -22,6 +22,7 @@ import com.tutor.platform.service.OrderService;
 import com.tutor.platform.vo.IncomeVO;
 import com.tutor.platform.vo.MyStudentVO;
 import com.tutor.platform.vo.OrderVO;
+import com.tutor.platform.vo.TutorDashboardVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -220,6 +221,56 @@ public class OrderServiceImpl implements OrderService {
             result.add(IncomeVO.builder().month(month).orderCount(cnt).totalIncome(amount).build());
         }
         return result;
+    }
+
+    @Override
+    public TutorDashboardVO dashboard(Long tutorId) {
+        List<IncomeVO> trend = incomeLast6Months(tutorId);
+        BigDecimal totalIncome = trend.stream()
+                .map(IncomeVO::getTotalIncome)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long totalOrders = trend.stream().mapToLong(IncomeVO::getOrderCount).sum();
+        long completed = totalOrders;
+
+        // 待确认订单数（status=0）
+        Long pending = appointmentMapper.selectCount(
+                new LambdaQueryWrapper<AppointmentEntity>()
+                        .eq(AppointmentEntity::getTutorId, tutorId)
+                        .eq(AppointmentEntity::getStatus, 0));
+
+        // 学科收入分布
+        List<TutorDashboardVO.SubjectIncomeVO> subjectList = new ArrayList<>();
+        for (Map<String, Object> row : appointmentMapper.subjectIncome(tutorId)) {
+            Long sid = row.get("subjectId") == null ? null : ((Number) row.get("subjectId")).longValue();
+            String sname = row.get("subjectName") == null ? "未知" : row.get("subjectName").toString();
+            long cnt = row.get("cnt") == null ? 0 : ((Number) row.get("cnt")).longValue();
+            BigDecimal amount = row.get("amount") == null
+                    ? BigDecimal.ZERO : new BigDecimal(row.get("amount").toString());
+            subjectList.add(TutorDashboardVO.SubjectIncomeVO.builder()
+                    .subjectId(sid).subjectName(sname).income(amount).orderCount(cnt).build());
+        }
+
+        // 订单状态分布
+        String[] statusNames = {"待确认", "已预约", "授课中", "已完成", "已取消", "已拒绝"};
+        List<TutorDashboardVO.StatusCountVO> statusList = new ArrayList<>();
+        for (Map<String, Object> row : appointmentMapper.statusDistribution(tutorId)) {
+            Integer st = row.get("status") == null ? null : ((Number) row.get("status")).intValue();
+            long cnt = row.get("cnt") == null ? 0 : ((Number) row.get("cnt")).longValue();
+            String name = (st != null && st >= 0 && st < statusNames.length) ? statusNames[st] : "未知";
+            statusList.add(TutorDashboardVO.StatusCountVO.builder()
+                    .status(st).statusName(name).count(cnt).build());
+        }
+
+        return TutorDashboardVO.builder()
+                .totalIncome(totalIncome)
+                .totalOrders(appointmentMapper.selectCount(
+                        new LambdaQueryWrapper<AppointmentEntity>().eq(AppointmentEntity::getTutorId, tutorId)))
+                .completedOrders(completed)
+                .pendingOrders(pending == null ? 0 : pending)
+                .incomeTrend(trend)
+                .subjectIncome(subjectList)
+                .statusDistribution(statusList)
+                .build();
     }
 
     @Override

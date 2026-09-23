@@ -5,6 +5,7 @@ import com.tutor.platform.dto.AppointmentCreateDTO;
 import com.tutor.platform.vo.IncomeVO;
 import com.tutor.platform.vo.MyStudentVO;
 import com.tutor.platform.vo.OrderVO;
+import com.tutor.platform.vo.TutorDashboardVO;
 
 import java.util.List;
 
@@ -33,6 +34,9 @@ public interface OrderService {
 
     /** 老师近6个月收入趋势 */
     List<IncomeVO> incomeLast6Months(Long tutorId);
+
+    /** 老师端数据看板汇总（收入/订单/趋势/学科分布/状态分布） */
+    TutorDashboardVO dashboard(Long tutorId);
 
     /** 老师"我的学生"聚合列表 */
     List<MyStudentVO> myStudents(Long tutorId);

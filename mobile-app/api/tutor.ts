@@ -12,6 +12,10 @@ export function getTutorIncome(month: string): Promise<UTSJSONObject> {
   return get('/tutors/income?month=' + month, null)
 }
 
+export function getTutorDashboard(): Promise<UTSJSONObject> {
+  return get('/tutors/dashboard', null)
+}
+
 export function getMyStudents(): Promise<UTSJSONObject> {
   return get('/tutors/my-students', new Map<string, any>())
 }

@@ -1,70 +1,128 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="height: 700px;">
-    <view class="month-bar">
-      <text class="month-prev" @click="changeMonth(-1)">‹</text>
-      <text class="month-text">{{ month }}</text>
-      <text class="month-next" @click="changeMonth(1)">›</text>
+    <!-- 统计卡片 2x2 -->
+    <view class="stat-grid">
+      <view class="stat-card">
+        <text class="stat-num">¥{{ dash != null ? (dash!['totalIncome'] as number).toFixed(2) : '0.00' }}</text>
+        <text class="stat-label">累计收入</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-num">{{ dash != null ? dash!['totalOrders'] : 0 }}</text>
+        <text class="stat-label">累计订单</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-num">{{ dash != null ? dash!['completedOrders'] : 0 }}</text>
+        <text class="stat-label">已完成</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-num">{{ dash != null ? dash!['pendingOrders'] : 0 }}</text>
+        <text class="stat-label">待确认</text>
+      </view>
     </view>
 
-    <view class="card stat-card">
-      <view class="stat-item">
-        <text class="stat-num">{{ income != null ? (income!['totalIncome'] as number).toFixed(2) : '--' }}</text>
-        <text class="stat-label">本月收入（元）</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-num">{{ income != null ? income!['orderCount'] : '--' }}</text>
-        <text class="stat-label">完成订单数</text>
+    <!-- 收入趋势 -->
+    <view class="card">
+      <text class="card-title">近6个月收入趋势</text>
+      <view v-if="trend.length == 0" class="empty">暂无数据</view>
+      <view v-else class="bar-chart">
+        <view v-for="(item: UTSJSONObject, i: number) in trend" :key="i" class="bar-col">
+          <text class="bar-val">¥{{ (item['totalIncome'] as number).toFixed(0) }}</text>
+          <view class="bar-wrap">
+            <view class="bar" :style="{ height: barH(item['totalIncome'] as number) }"></view>
+          </view>
+          <text class="bar-lbl">{{ item['month'] as string }}</text>
+        </view>
       </view>
     </view>
 
-    <text v-if="loading" class="tip">加载中...</text>
-    <text v-else-if="income == null" class="tip">该月暂无完成订单</text>
+    <!-- 订单状态分布 -->
+    <view class="card">
+      <text class="card-title">订单状态分布</text>
+      <view v-if="statusList.length == 0" class="empty">暂无数据</view>
+      <view v-else>
+        <view v-for="(s: UTSJSONObject, i: number) in statusList" :key="i" class="status-row">
+          <text class="status-name">{{ s['statusName'] as string }}</text>
+          <view class="status-bar-wrap">
+            <view class="status-bar" :style="{ width: statusW(s['count'] as number), background: statusColor(i) }"></view>
+          </view>
+          <text class="status-count">{{ s['count'] as number }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 学科收入分布 -->
+    <view class="card">
+      <text class="card-title">学科收入分布</text>
+      <view v-if="subjectList.length == 0" class="empty">暂无数据</view>
+      <view v-else class="bar-chart">
+        <view v-for="(s: UTSJSONObject, i: number) in subjectList" :key="i" class="bar-col">
+          <text class="bar-val">¥{{ (s['income'] as number).toFixed(0) }}</text>
+          <view class="bar-wrap">
+            <view class="bar bar-subject" :style="{ height: barH(s['income'] as number) }"></view>
+          </view>
+          <text class="bar-lbl">{{ s['subjectName'] as string }}</text>
+        </view>
+      </view>
+    </view>
   </scroll-view>
 </template>
 
 <script lang="uts">
-import { getTutorIncome } from '../../api/tutor'
-
-function pad(n: number): string {
-  return n < 10 ? '0' + n : '' + n
-}
+import { getTutorDashboard } from '../../api/tutor'
 
 export default {
   data() {
-    const now = new Date()
     return {
-      month: (now.getFullYear() + '-' + pad(now.getMonth() + 1)) as string,
-      income: null as UTSJSONObject | null,
-      loading: false
+      dash: null as UTSJSONObject | null,
+      trend: [] as UTSJSONObject[],
+      statusList: [] as UTSJSONObject[],
+      subjectList: [] as UTSJSONObject[],
+      maxVal: 1 as number,
+      maxStatus: 1 as number
     }
   },
   onShow() {
     this.load()
   },
   methods: {
-    changeMonth(delta: number) {
-      const parts = this.month.split('-', 2)
-      const y = parseInt(parts[0].toString())
-      const m = parseInt(parts[1].toString()) + delta
-      if (m <= 0) {
-        this.month = (y - 1) + '-12'
-      } else if (m > 12) {
-        this.month = (y + 1) + '-01'
-      } else {
-        this.month = y + '-' + pad(m)
-      }
-      this.load()
-    },
     async load() {
-      this.loading = true
       try {
-        this.income = await getTutorIncome(this.month)
+        const res = await getTutorDashboard()
+        this.dash = res
+        this.trend = res['incomeTrend'] as UTSJSONObject[]
+        this.statusList = res['statusDistribution'] as UTSJSONObject[]
+        this.subjectList = res['subjectIncome'] as UTSJSONObject[]
+        let mx = 1
+        for (let i = 0; i < this.trend.length; i++) {
+          const v = this.trend[i]['totalIncome'] as number
+          if (v > mx) mx = v
+        }
+        for (let i = 0; i < this.subjectList.length; i++) {
+          const v = this.subjectList[i]['income'] as number
+          if (v > mx) mx = v
+        }
+        this.maxVal = mx
+        let ms = 1
+        for (let i = 0; i < this.statusList.length; i++) {
+          const c = this.statusList[i]['count'] as number
+          if (c > ms) ms = c
+        }
+        this.maxStatus = ms
       } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' })
-        this.income = null
-      } finally {
-        this.loading = false
       }
+    },
+    barH(v: number): string {
+      const h = Math.max(4, (v / this.maxVal) * 120)
+      return '' + h + 'px'
+    },
+    statusW(c: number): string {
+      const w = Math.max(2, (c / this.maxStatus) * 100)
+      return '' + w + '%'
+    },
+    statusColor(i: number): string {
+      const colors = ['#3b82f6', '#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444']
+      return colors[i % colors.length]
     }
   }
 }
@@ -72,49 +130,27 @@ export default {
 
 <style>
 .page {
-  flex: 1;
   background: #f5f7fa;
-  padding: 24rpx;
+  padding: 20rpx;
 }
-.month-bar {
+.stat-grid {
   display: flex;
-    flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 24rpx;
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 20rpx 0;
-}
-.month-text {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-}
-.month-prev,
-.month-next {
-  font-size: 40rpx;
-  color: #4f6ef7;
-  padding: 0 20rpx;
-}
-.card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 24rpx;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
 }
 .stat-card {
-  display: flex;
-    flex-direction: row;
-  padding: 40rpx 24rpx;
-  justify-content: space-around;
-}
-.stat-item {
+  width: 48%;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx 20rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 .stat-num {
-  font-size: 44rpx;
+  font-size: 40rpx;
   font-weight: 700;
   color: #1f2d3d;
 }
@@ -123,10 +159,93 @@ export default {
   color: #909399;
   margin-top: 8rpx;
 }
-.tip {
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2d3d;
+  margin-bottom: 20rpx;
+  display: block;
+}
+.empty {
   text-align: center;
   color: #909399;
-  padding: 80rpx 0;
-  font-size: 28rpx;
+  padding: 60rpx 0;
+  font-size: 26rpx;
+}
+.bar-chart {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12rpx;
+  height: 200px;
+  padding-top: 10px;
+}
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+.bar-val {
+  font-size: 20rpx;
+  color: #606266;
+  margin-bottom: 6rpx;
+}
+.bar-wrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  justify-content: center;
+}
+.bar {
+  width: 40rpx;
+  background: linear-gradient(180deg, #3b82f6, #06b6d4);
+  border-radius: 8rpx 8rpx 0 0;
+  min-height: 4px;
+}
+.bar-subject {
+  background: linear-gradient(180deg, #06b6d4, #3b82f6);
+}
+.bar-lbl {
+  font-size: 20rpx;
+  color: #909399;
+  margin-top: 8rpx;
+}
+.status-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.status-name {
+  width: 120rpx;
+  font-size: 24rpx;
+  color: #606266;
+}
+.status-bar-wrap {
+  flex: 1;
+  height: 16rpx;
+  background: #f0f2f5;
+  border-radius: 8rpx;
+  margin: 0 16rpx;
+  overflow: hidden;
+}
+.status-bar {
+  height: 100%;
+  border-radius: 8rpx;
+}
+.status-count {
+  width: 60rpx;
+  font-size: 24rpx;
+  color: #1f2d3d;
+  text-align: right;
 }
 </style>

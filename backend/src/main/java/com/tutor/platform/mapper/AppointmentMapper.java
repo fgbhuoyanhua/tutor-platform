@@ -78,4 +78,22 @@ public interface AppointmentMapper extends BaseMapper<AppointmentEntity> {
             "GROUP BY student_id " +
             "ORDER BY last_date DESC")
     List<Map<String, Object>> myStudents(@Param("tutorId") Long tutorId);
+
+    /**
+     * 老师学科收入分布：已完成订单按学科分组
+     */
+    @Select("SELECT a.subject_id AS subjectId, s.name AS subjectName, " +
+            "COUNT(*) AS cnt, COALESCE(SUM(a.total_price), 0) AS amount " +
+            "FROM appointment a LEFT JOIN subject s ON a.subject_id = s.id " +
+            "WHERE a.tutor_id = #{tutorId} AND a.status = 3 " +
+            "GROUP BY a.subject_id, s.name " +
+            "ORDER BY amount DESC")
+    List<Map<String, Object>> subjectIncome(@Param("tutorId") Long tutorId);
+
+    /**
+     * 老师订单状态分布：按状态分组计数
+     */
+    @Select("SELECT status AS status, COUNT(*) AS cnt FROM appointment " +
+            "WHERE tutor_id = #{tutorId} GROUP BY status ORDER BY status")
+    List<Map<String, Object>> statusDistribution(@Param("tutorId") Long tutorId);
 }

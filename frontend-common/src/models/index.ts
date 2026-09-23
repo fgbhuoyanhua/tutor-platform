@@ -162,6 +162,17 @@ export interface IncomeVO {
   totalIncome: number;
 }
 
+/** 老师端数据看板 */
+export interface TutorDashboardVO {
+  totalIncome: number;
+  totalOrders: number;
+  completedOrders: number;
+  pendingOrders: number;
+  incomeTrend: IncomeVO[];
+  subjectIncome: { subjectId: number; subjectName: string; income: number; orderCount: number }[];
+  statusDistribution: { status: number; statusName: string; count: number }[];
+}
+
 /** 老师视角"我的学生" */
 export interface MyStudentVO {
   studentId: number;
