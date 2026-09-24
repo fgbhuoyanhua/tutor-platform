@@ -9,6 +9,7 @@
     { "path": "pages/tutor/students", "style": { "navigationBarTitleText": "我的学生" } },
     { "path": "pages/tutor/evaluations", "style": { "navigationBarTitleText": "学生评价" } },
     { "path": "pages/order/list", "style": { "navigationBarTitleText": "我的订单" } },
+    { "path": "pages/student/calendar", "style": { "navigationBarTitleText": "我的课程表" } },
     { "path": "pages/order/create", "style": { "navigationBarTitleText": "预约老师" } },
     { "path": "pages/order/reschedule", "style": { "navigationBarTitleText": "申请调课" } },
     { "path": "pages/message/list", "style": { "navigationBarTitleText": "消息" } },

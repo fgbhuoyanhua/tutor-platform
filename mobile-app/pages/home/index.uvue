@@ -26,9 +26,55 @@
           <text class="quick-label">收入统计</text>
         </view>
       </view>
+
+      <!-- 今日课程 -->
+      <view class="panel">
+        <view class="panel-head">
+          <text class="panel-title">📅 今日课程</text>
+          <text class="panel-count">{{ todayLessons.length }} 节</text>
+        </view>
+        <text v-if="todayLessons.length == 0" class="panel-empty">今天没有课程安排</text>
+        <view v-for="(l: UTSJSONObject, i: number) in todayLessons" :key="i" class="lesson-row">
+          <text class="lesson-time">{{ l['timeSlot'] }}</text>
+          <view class="lesson-info">
+            <text class="lesson-name">{{ l['studentName'] }} · {{ l['subjectName'] }}</text>
+            <text class="lesson-status">{{ statusLabel(l['status'] as number) }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 待处理预约 -->
+      <view class="panel">
+        <view class="panel-head">
+          <text class="panel-title">⏳ 待处理预约</text>
+          <text class="panel-count">{{ pendingOrders.length }} 条</text>
+        </view>
+        <text v-if="pendingOrders.length == 0" class="panel-empty">暂无待处理预约</text>
+        <view v-for="(o: UTSJSONObject, i: number) in pendingOrders" :key="i" class="pending-row" @click="goOrders">
+          <view class="pending-info">
+            <text class="pending-name">{{ o['studentName'] }} · {{ o['subjectName'] }}</text>
+            <text class="pending-date">{{ o['appointDate'] }} {{ o['timeSlot'] }}</text>
+          </view>
+          <text class="pending-arrow">›</text>
+        </view>
+      </view>
     </view>
 
     <block v-if="role != 2">
+    <view class="quick-grid student-quick">
+      <view class="quick-item" @click="goStudentCalendar">
+        <text class="quick-icon">📅</text>
+        <text class="quick-label">我的课程表</text>
+      </view>
+      <view class="quick-item" @click="goOrders">
+        <text class="quick-icon">📋</text>
+        <text class="quick-label">我的订单</text>
+      </view>
+      <view class="quick-item" @click="goFavorites">
+        <text class="quick-icon">❤️</text>
+        <text class="quick-label">我的收藏</text>
+      </view>
+    </view>
     <text class="page-title">找家教</text>
     <scroll-view class="filter" scroll-x>
       <view class="filter-inner">
@@ -82,6 +128,7 @@
 import { pageTutors, recommendTutors } from '../../api/tutor'
 import { listSubjects } from '../../api/subject'
 import { listFavorites } from '../../api/favorite'
+import { pageOrders } from '../../api/order'
 import { getToken, getUser } from '../../utils/storage'
 
 export default {
@@ -92,7 +139,39 @@ export default {
       subjectId: 0,
       loading: false,
       onlyFav: false,
-      role: 0
+      role: 0,
+      allOrders: [] as UTSJSONObject[]
+    }
+  },
+  computed: {
+    todayStr(): string {
+      const d = new Date()
+      const m = (d.getMonth() + 1) < 10 ? '0' + (d.getMonth() + 1) : '' + (d.getMonth() + 1)
+      const dd = d.getDate() < 10 ? '0' + d.getDate() : '' + d.getDate()
+      return d.getFullYear() + '-' + m + '-' + dd
+    },
+    todayLessons(): UTSJSONObject[] {
+      const result: UTSJSONObject[] = []
+      const today = this.todayStr
+      for (let i = 0; i < this.allOrders.length; i++) {
+        const o = this.allOrders[i]
+        const st = o['status'] as number
+        if (o['appointDate'] == today && (st == 1 || st == 2 || st == 3)) {
+          result.push(o)
+        }
+      }
+      return result
+    },
+    pendingOrders(): UTSJSONObject[] {
+      const result: UTSJSONObject[] = []
+      for (let i = 0; i < this.allOrders.length; i++) {
+        const o = this.allOrders[i]
+        if ((o['status'] as number) == 0) {
+          result.push(o)
+          if (result.length >= 5) break
+        }
+      }
+      return result
     }
   },
   onShow() {
@@ -103,11 +182,27 @@ export default {
     const u = getUser()
     this.role = u != null ? (u['role'] as number) : 0
     if (this.role == 2) {
+      this.loadOrders()
       return
     }
     this.load()
   },
   methods: {
+    async loadOrders() {
+      try {
+        const params = new Map<string, any>()
+        params.set('page', 1)
+        params.set('size', 200)
+        const res = await pageOrders(params)
+        this.allOrders = res['records'] as UTSJSONObject[]
+      } catch (e) {}
+    },
+    statusLabel(s: number): string {
+      if (s == 1) return '已预约'
+      if (s == 2) return '授课中'
+      if (s == 3) return '已完成'
+      return ''
+    },
     async load() {
       this.loading = true
       try {
@@ -159,7 +254,9 @@ export default {
     goStudents() { uni.navigateTo({ url: '/pages/tutor/students' }) },
     goOrders() { uni.switchTab({ url: '/pages/order/list' }) },
     goEvals() { uni.navigateTo({ url: '/pages/tutor/evaluations' }) },
-    goIncome() { uni.navigateTo({ url: '/pages/tutor/income' }) }
+    goIncome() { uni.navigateTo({ url: '/pages/tutor/income' }) },
+    goStudentCalendar() { uni.navigateTo({ url: '/pages/student/calendar' }) },
+    goFavorites() { uni.navigateTo({ url: '/pages/favorite/list' }) }
   }
 }
 </script>
@@ -171,6 +268,9 @@ export default {
 }
 .workbench {
   padding: 20rpx;
+}
+.student-quick {
+  padding: 20rpx 20rpx 0;
 }
 .welcome {
   padding: 30rpx;
@@ -206,6 +306,87 @@ export default {
 .quick-label {
   font-size: 24rpx;
   color: #333;
+}
+.panel {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+.panel-head {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.panel-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.panel-count {
+  font-size: 24rpx;
+  color: #4f6ef7;
+  font-weight: 600;
+}
+.panel-empty {
+  text-align: center;
+  color: #c0c4cc;
+  padding: 32rpx 0;
+  font-size: 26rpx;
+}
+.lesson-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f5f7fa;
+}
+.lesson-time {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #4f6ef7;
+  width: 140rpx;
+}
+.lesson-info {
+  flex: 1;
+}
+.lesson-name {
+  font-size: 28rpx;
+  color: #303133;
+  font-weight: 500;
+}
+.lesson-status {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 4rpx;
+}
+.pending-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f5f7fa;
+}
+.pending-info {
+  flex: 1;
+}
+.pending-name {
+  font-size: 28rpx;
+  color: #303133;
+  font-weight: 500;
+}
+.pending-date {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 4rpx;
+}
+.pending-arrow {
+  font-size: 36rpx;
+  color: #c0c4cc;
 }
 .page-title {
   font-size: 36rpx;

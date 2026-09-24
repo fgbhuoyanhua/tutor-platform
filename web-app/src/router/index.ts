@@ -82,6 +82,12 @@ const router = createRouter({
           meta: { title: '我的订单', roles: [1, 2] },
         },
         {
+          path: 'student/calendar',
+          name: 'studentCalendar',
+          component: () => import('@/views/student/StudentCalendar.vue'),
+          meta: { title: '我的课程表', roles: [1] },
+        },
+        {
           path: 'messages',
           name: 'messages',
           component: () => import('@/views/message/MessageCenter.vue'),

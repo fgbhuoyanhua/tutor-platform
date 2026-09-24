@@ -11,6 +11,10 @@
           <el-icon><Search /></el-icon>
           <span>找家教</span>
         </el-menu-item>
+        <el-menu-item v-if="userStore.isStudent" index="/student/calendar">
+          <el-icon><Calendar /></el-icon>
+          <span>我的课程表</span>
+        </el-menu-item>
         <el-menu-item v-if="userStore.isTutor" index="/my-tutor">
           <el-icon><User /></el-icon>
           <span>我的家教信息</span>
