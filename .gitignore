@@ -42,3 +42,6 @@ _*.png
 tmp*.png
 *.zip
 公钥.txt
+
+# 任务报告不提交
+docs/
