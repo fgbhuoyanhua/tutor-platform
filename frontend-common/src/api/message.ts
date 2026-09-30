@@ -1,7 +1,7 @@
-import { get, post, put } from './request';
+import { get, post, put, del } from './request';
 import type { MessageEntity, ConversationVO } from '../models';
 
-/** 我的消息列表 */
+/** 我的消息列表（通知+私信） */
 export function listMessages(): Promise<MessageEntity[]> {
   return get<MessageEntity[]>('/messages');
 }
@@ -14,6 +14,16 @@ export function unreadCount(): Promise<number> {
 /** 全部标记已读 */
 export function markAllRead(): Promise<void> {
   return put<void>('/messages/read');
+}
+
+/** 单条消息标记已读 */
+export function markOneRead(id: number): Promise<void> {
+  return put<void>(`/messages/${id}/read`);
+}
+
+/** 删除所有已读消息（只删通知，不删私信） */
+export function deleteReadMessages(): Promise<void> {
+  return del<void>('/messages/read');
 }
 
 /** 给某人发私信 */

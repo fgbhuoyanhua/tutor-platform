@@ -40,6 +40,7 @@
               <el-button v-if="row.status === 3" link type="primary" size="small" @click="openReport(row)">写报告</el-button>
             </template>
             <el-button v-if="userStore.isStudent && row.status === 3" link type="primary" size="small" @click="viewReport(row)">学习报告</el-button>
+            <el-button v-if="userStore.isStudent && row.status === 3 && !evaluatedIds.has(row.id)" link type="warning" size="small" @click="openEval(row)">评价老师</el-button>
             <span v-if="!canOperate(row)" class="noop">—</span>
           </template>
         </el-table-column>
@@ -85,6 +86,28 @@
         <el-button v-if="reportMode === 'write'" type="primary" @click="submitReport">提交</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="evalVisible" title="评价老师" width="440px">
+      <div class="eval-tutor-info">
+        <el-avatar :size="40">{{ evalOrder?.tutorName?.[0] || '老' }}</el-avatar>
+        <div>
+          <div style="font-weight:600">{{ evalOrder?.tutorName }}</div>
+          <div style="color:#909399;font-size:12px">{{ evalOrder?.subjectName }} · {{ evalOrder?.appointDate }} {{ evalOrder?.timeSlot }}</div>
+        </div>
+      </div>
+      <el-form label-width="60px" style="margin-top:16px">
+        <el-form-item label="评分">
+          <el-rate v-model="evalForm.score" :max="5" show-text :texts="['很差','较差','一般','满意','非常满意']" />
+        </el-form-item>
+        <el-form-item label="评价">
+          <el-input v-model="evalForm.content" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="说说这次辅导体验（选填，500字内）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="evalVisible = false">取消</el-button>
+        <el-button type="primary" :loading="evalSubmitting" @click="submitEval">提交评价</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -106,6 +129,7 @@ import {
   formatDateTime,
   submitReport as apiSubmitReport,
   getReport,
+  createEvaluation,
   type OrderVO,
 } from '@tutor-platform/frontend-common';
 import { useUserStore } from '@/stores/user';
@@ -125,6 +149,12 @@ const reportVisible = ref(false);
 const reportMode = ref<'write' | 'view'>('write');
 const reportContent = ref('');
 const reportOrderId = ref(0);
+
+const evalVisible = ref(false);
+const evalSubmitting = ref(false);
+const evalOrder = ref<OrderVO | null>(null);
+const evalForm = reactive({ score: 5, content: '' });
+const evaluatedIds = ref<Set<number>>(new Set());
 
 const ACTIONS: Record<string, { title: string; text: string; fn: (id: number) => Promise<void> }> = {
   confirm: { title: '接单', text: '确认接单后不可撤销，确定接单吗？', fn: confirmOrder },
@@ -195,6 +225,29 @@ async function submitReport() {
   }
 }
 
+function openEval(row: OrderVO) {
+  evalOrder.value = row;
+  evalForm.score = 5;
+  evalForm.content = '';
+  evalVisible.value = true;
+}
+
+async function submitEval() {
+  if (!evalOrder.value) return;
+  evalSubmitting.value = true;
+  try {
+    await createEvaluation(evalOrder.value.id, evalForm.score, evalForm.content || undefined);
+    ElMessage.success('评价提交成功');
+    evaluatedIds.value.add(evalOrder.value.id);
+    evalVisible.value = false;
+    await load(query.page);
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    evalSubmitting.value = false;
+  }
+}
+
 async function submitReschedule() {
   if (!currentOrder.value || !rsForm.newDate || !rsForm.newSlot) {
     ElMessage.warning('请选择新日期和时段');
@@ -251,5 +304,13 @@ async function doAction(row: OrderVO, action: string) {
 }
 .noop {
   color: #c0c4cc;
+}
+.eval-tutor-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8faff, #f0f4ff);
+  border-radius: 10px;
 }
 </style>
