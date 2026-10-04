@@ -46,6 +46,12 @@ const router = createRouter({
           meta: { title: '找家教', roles: [1] },
         },
         {
+          path: 'favorites',
+          name: 'favorites',
+          component: () => import('@/views/tutor/FavoriteList.vue'),
+          meta: { title: '我的收藏', roles: [1] },
+        },
+        {
           path: 'my-tutor',
           name: 'myTutor',
           component: () => import('@/views/tutor/MyTutor.vue'),
