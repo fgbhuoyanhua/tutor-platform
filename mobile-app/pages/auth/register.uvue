@@ -12,7 +12,7 @@
 
     <view class="form-card">
       <text class="form-title">创建账号</text>
-      <text class="form-sub">注册后即可预约家教或成为老师</text>
+      <text class="form-sub">注册后选择学生或老师身份</text>
 
       <input class="input" v-model="username" placeholder="用户名（登录用）" placeholder-class="ph" />
       <input class="input" v-model="realName" placeholder="真实姓名" placeholder-class="ph" />
@@ -21,10 +21,10 @@
       <input class="input" v-model="confirmPwd" password placeholder="确认密码" placeholder-class="ph" />
 
       <view class="role-row">
-        <view :class="['role-item', role == 1 ? 'role-active' : '']" @click="role = 1">
+        <view :class="['role-item', role == 1 ? 'role-active' : '']" @click="selectRole(1)">
           <text :class="['role-text', role == 1 ? 'role-text-active' : '']">我是学生</text>
         </view>
-        <view :class="['role-item', role == 2 ? 'role-active' : '']" @click="role = 2">
+        <view :class="['role-item', role == 2 ? 'role-active' : '']" @click="selectRole(2)">
           <text :class="['role-text', role == 2 ? 'role-text-active' : '']">我是老师</text>
         </view>
       </view>
@@ -57,6 +57,9 @@ export default {
     }
   },
   methods: {
+    selectRole(r: number) {
+      this.role = r
+    },
     async doRegister() {
       if (this.username.trim() == '') {
         uni.showToast({ title: '请输入用户名', icon: 'none' })
