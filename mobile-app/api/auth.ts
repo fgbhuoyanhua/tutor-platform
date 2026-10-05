@@ -11,12 +11,15 @@ export function register(
   username: string,
   password: string,
   role: number,
-  realName: string
+  realName: string,
+  phone: string
 ): Promise<UTSJSONObject> {
   const body = new Map<string, any>()
   body.set('username', username)
   body.set('password', password)
   body.set('role', role)
   body.set('realName', realName)
+  body.set('phone', phone)
+  body.set('code', '123456')
   return post('/auth/register', body)
 }
