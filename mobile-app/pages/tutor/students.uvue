@@ -46,7 +46,7 @@ export default {
       this.loading = true
       try {
         const res = await getMyStudents()
-        this.list = res as UTSJSONObject[]
+        this.list = res['list'] as UTSJSONObject[]
       } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' })
       } finally {

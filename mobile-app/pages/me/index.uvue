@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 500px;">
+  <scroll-view class="page" scroll-y="true" style="height: 700px;">
     <view class="card user-card">
       <view v-if="hasAvatar" class="avatar" :src="user!['avatar']" mode="aspectFill" />
       <text v-else class="avatar avatar-text">{{ avatarChar }}</text>
