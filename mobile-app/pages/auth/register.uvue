@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1400px;">
     <view class="brand">
       <view class="brand-row">
         <text class="brand-name">青蓝</text>
@@ -18,7 +18,7 @@
       <input class="input" v-model="realName" placeholder="真实姓名" placeholder-class="ph" />
       <input class="input" v-model="phone" placeholder="手机号" placeholder-class="ph" type="number" />
       <input class="input" v-model="password" password placeholder="密码（至少6位）" placeholder-class="ph" />
-      <input class="input" v-model="confirmPwd" password placeholder="确认密码" placeholder-class="ph" />
+      <input class="input" v-model="confirmPwd" password placeholder="确认密码" placeholder-class="ph" confirm-type="send" @confirm="doRegister" />
 
       <view class="role-row">
         <view :class="['role-item', role == 1 ? 'role-active' : '']" @click="selectRole(1)">
@@ -29,10 +29,7 @@
         </view>
       </view>
 
-      <button class="btn-register" :loading="loading" @click="doRegister">
-        <text class="btn-text">注 册</text>
-      </button>
-
+      <button class="btn-register" :loading="loading" @click="doRegister">注 册</button>
       <view class="links">
         <text class="link-tip">已有账号？</text>
         <text class="link" @click="goLogin">去登录</text>
@@ -61,6 +58,7 @@ export default {
       this.role = r
     },
     async doRegister() {
+      if (this.loading) return
       if (this.username.trim() == '') {
         uni.showToast({ title: '请输入用户名', icon: 'none' })
         return
@@ -103,7 +101,6 @@ export default {
 
 <style>
 .page {
-  flex: 1;
   background: #f5f7fa;
 }
 .brand {
@@ -148,7 +145,6 @@ export default {
   margin: -32rpx 32rpx 0;
   border-radius: 24rpx;
   padding: 48rpx 40rpx;
-  box-shadow: 0 8rpx 32rpx rgba(0,0,0,0.06);
 }
 .form-title {
   font-size: 36rpx;
@@ -176,7 +172,7 @@ export default {
 .role-row {
   display: flex;
   flex-direction: row;
-  margin-bottom: 36rpx;
+  margin-bottom: 16rpx;
 }
 .role-item {
   flex: 1;
@@ -205,20 +201,20 @@ export default {
   border-radius: 16rpx;
   height: 88rpx;
   line-height: 88rpx;
-  border: none;
-  padding: 0;
-}
-.btn-text {
   color: #ffffff;
   font-size: 30rpx;
   font-weight: 700;
   letter-spacing: 8rpx;
+  border: none;
+  padding: 0;
+  margin-top: 32rpx;
 }
 .links {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  margin-top: 32rpx;
+  margin-top: 24rpx;
+  margin-bottom: 40rpx;
 }
 .link-tip {
   font-size: 26rpx;

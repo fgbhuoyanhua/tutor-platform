@@ -1,4 +1,4 @@
-const BASE_URL = 'http://10.84.64.128:8080/api'
+const BASE_URL = 'http://192.168.1.4:8080/api'
 const TOKEN_KEY = 'tutor_platform_token'
 
 function getToken(): string {
@@ -32,6 +32,7 @@ export function request(
       method: method,
       data: toJsonData(data),
       header: header,
+      timeout: 10000,
       success: (res) => {
         const raw = res.data
         if (raw == null) {
