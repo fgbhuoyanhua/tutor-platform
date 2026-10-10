@@ -230,7 +230,11 @@ public class OrderServiceImpl implements OrderService {
                 .map(IncomeVO::getTotalIncome)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         long totalOrders = trend.stream().mapToLong(IncomeVO::getOrderCount).sum();
-        long completed = totalOrders;
+        // 已完成订单数（status=3），不能复用 totalOrders
+        long completed = appointmentMapper.selectCount(
+                new LambdaQueryWrapper<AppointmentEntity>()
+                        .eq(AppointmentEntity::getTutorId, tutorId)
+                        .eq(AppointmentEntity::getStatus, 3));
 
         // 待确认订单数（status=0）
         Long pending = appointmentMapper.selectCount(
