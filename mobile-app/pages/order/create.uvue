@@ -79,10 +79,8 @@ export default {
         uni.showToast({ title: '加载失败', icon: 'none' })
       }
     },
-    onDateChange(e: UTSJSONObject) {
-      const detail = e['detail'] as UTSJSONObject | null
-      const v = detail != null ? (detail['value'] as string | null) : null
-      this.appointDate = v != null ? v.toString() : ''
+    onDateChange(e: UniPickerChangeEvent) {
+      this.appointDate = (e.detail.value as string)
     },
     async onSubmit() {
       if (this.appointDate == '') {

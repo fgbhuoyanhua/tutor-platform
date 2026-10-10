@@ -52,15 +52,11 @@ export default {
     this.today = y + '-' + m + '-' + day
   },
   methods: {
-    onDateChange(e: UTSJSONObject) {
-      const detail = e['detail'] as UTSJSONObject | null
-      const v = detail != null ? (detail['value'] as string | null) : null
-      this.newDate = v != null ? v.toString() : ''
+    onDateChange(e: UniPickerChangeEvent) {
+      this.newDate = (e.detail.value as string)
     },
-    onSlotChange(e: UTSJSONObject) {
-      const detail = e['detail'] as UTSJSONObject | null
-      const v = detail != null ? (detail['value'] as string | null) : '0'
-      const idx = parseInt(v != null ? v.toString() : '0')
+    onSlotChange(e: UniPickerChangeEvent) {
+      const idx = (e.detail.value as number)
       this.newSlot = this.slots[idx]
     },
     async submit() {

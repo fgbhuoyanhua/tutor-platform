@@ -170,7 +170,6 @@ export default {
   font-weight: 600;
   color: #1f2d3d;
   margin-bottom: 20rpx;
-  display: block;
 }
 .empty {
   text-align: center;
