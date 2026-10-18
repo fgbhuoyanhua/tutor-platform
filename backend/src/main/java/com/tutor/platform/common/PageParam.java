@@ -8,8 +8,12 @@ package com.tutor.platform.common;
  */
 public final class PageParam {
 
-    /** 单页最大条数上限 */
-    public static final int MAX_PAGE_SIZE = 100;
+    /**
+     * 单页最大条数上限。
+     * 取 200：移动端课程表（student/calendar、tutor/calendar）一次拉全量订单用于本地按周分组，
+     * 请求 size=200。上限低于 200 会让课程表静默丢数据。
+     */
+    public static final int MAX_PAGE_SIZE = 200;
 
     /** 默认页大小 */
     public static final int DEFAULT_PAGE_SIZE = 10;

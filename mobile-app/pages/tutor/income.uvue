@@ -3,7 +3,7 @@
     <!-- 统计卡片 2x2 -->
     <view class="stat-grid">
       <view class="stat-card">
-        <text class="stat-num">¥{{ dash != null ? (dash!['totalIncome'] as number).toFixed(2) : '0.00' }}</text>
+        <text class="stat-num">¥{{ dash != null && dash!['totalIncome'] != null ? (dash!['totalIncome'] as number).toFixed(2) : '0.00' }}</text>
         <text class="stat-label">累计收入</text>
       </view>
       <view class="stat-card">
@@ -26,7 +26,7 @@
       <view v-if="trend.length == 0" class="empty">暂无数据</view>
       <view v-else class="bar-chart">
         <view v-for="(item: UTSJSONObject, i: number) in trend" :key="i" class="bar-col">
-          <text class="bar-val">¥{{ (item['totalIncome'] as number).toFixed(0) }}</text>
+          <text class="bar-val">¥{{ item['totalIncome'] != null ? (item['totalIncome'] as number).toFixed(0) : '0' }}</text>
           <view class="bar-wrap">
             <view class="bar" :style="{ height: barH(item['totalIncome'] as number) }"></view>
           </view>
@@ -56,7 +56,7 @@
       <view v-if="subjectList.length == 0" class="empty">暂无数据</view>
       <view v-else class="bar-chart">
         <view v-for="(s: UTSJSONObject, i: number) in subjectList" :key="i" class="bar-col">
-          <text class="bar-val">¥{{ (s['income'] as number).toFixed(0) }}</text>
+          <text class="bar-val">¥{{ s['income'] != null ? (s['income'] as number).toFixed(0) : '0' }}</text>
           <view class="bar-wrap">
             <view class="bar bar-subject" :style="{ height: barH(s['income'] as number) }"></view>
           </view>
@@ -113,11 +113,16 @@ export default {
       }
     },
     barH(v: number): string {
-      const h = Math.max(4, (v / this.maxVal) * 120)
+      // NaN / null 兜底，避免柱状图高度算出 "NaNpx"
+      const val = (v == null || isNaN(v)) ? 0 : v
+      const mx = this.maxVal > 0 ? this.maxVal : 1
+      const h = Math.max(4, (val / mx) * 120)
       return '' + h + 'px'
     },
     statusW(c: number): string {
-      const w = Math.max(2, (c / this.maxStatus) * 100)
+      const val = (c == null || isNaN(c)) ? 0 : c
+      const ms = this.maxStatus > 0 ? this.maxStatus : 1
+      const w = Math.max(2, (val / ms) * 100)
       return '' + w + '%'
     },
     statusColor(i: number): string {
@@ -137,11 +142,16 @@ export default {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 16rpx;
   margin-bottom: 20rpx;
+  /* 不用 gap（uni-app x 不支持，仅 warning 且可能不生效），用 margin 实现 2x2 间距 */
 }
 .stat-card {
+  /* 48% + 左右各 1% 外边距 = 100%，形成两列；需要 box-sizing 保证 padding 不撑破 */
   width: 48%;
+  margin-left: 1%;
+  margin-right: 1%;
+  margin-bottom: 16rpx;
+  box-sizing: border-box;
   background: #ffffff;
   border-radius: 16rpx;
   padding: 28rpx 20rpx;
@@ -181,7 +191,7 @@ export default {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
-  gap: 12rpx;
+  /* 不用 gap，用每个 bar-col 的左右 margin 做出间距 */
   height: 200px;
   padding-top: 10px;
 }
@@ -190,7 +200,10 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100%;
+  /* 不用 height:100%（uni-app x 不支持），父级已有固定 200px，这里用固定高度 */
+  height: 190px;
+  margin-left: 6rpx;
+  margin-right: 6rpx;
 }
 .bar-val {
   font-size: 20rpx;
@@ -238,7 +251,8 @@ export default {
   overflow: hidden;
 }
 .status-bar {
-  height: 100%;
+  /* 不用 height:100%（uni-app x 不支持），父级 status-bar-wrap 固定 16rpx，这里写同值 */
+  height: 16rpx;
   border-radius: 8rpx;
 }
 .status-count {
