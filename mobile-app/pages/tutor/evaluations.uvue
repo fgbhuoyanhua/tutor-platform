@@ -1,5 +1,5 @@
 <template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view class="header">
       <text class="title">学生评价</text>
       <text v-if="list.length > 0" class="summary">共 {{ list.length }} 条 · 平均分 {{ avgScore }}</text>

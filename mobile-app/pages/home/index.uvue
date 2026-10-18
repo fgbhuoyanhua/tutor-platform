@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view v-if="role == 2" class="workbench">
       <view class="welcome">
         <text class="welcome-title">老师工作台</text>

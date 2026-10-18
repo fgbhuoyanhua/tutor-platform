@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view v-if="tutor != null" class="card">
       <view class="detail-head">
         <image v-if="tutor!['avatar'] != null && tutor!['avatar'] != ''" class="avatar" :src="tutor!['avatar']" mode="aspectFill" />

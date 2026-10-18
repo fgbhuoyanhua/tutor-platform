@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view v-if="isTutor" class="income-entry" @click="goIncome">
       <text class="income-entry-text">收入统计</text>
       <text class="income-entry-arrow">›</text>

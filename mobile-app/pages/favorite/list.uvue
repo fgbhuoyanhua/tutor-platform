@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view v-for="(t: UTSJSONObject, i: number) in list" :key="i" class="card tutor-card" @click="goDetail(t)">
       <view class="head">
         <image v-if="t['avatar'] != null && t['avatar'] != ''" class="avatar" :src="t['avatar']" mode="aspectFill" />

@@ -1,5 +1,5 @@
 <template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <!-- 统计卡片 2x2 -->
     <view class="stat-grid">
       <view class="stat-card">

@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 700px;">
+  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view class="brand">
       <text class="brand-title">家教预约平台</text>
       <text class="brand-sub">大学生家教服务预约</text>
