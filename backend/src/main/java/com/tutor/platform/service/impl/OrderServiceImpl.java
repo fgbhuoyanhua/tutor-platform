@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tutor.platform.common.BizException;
+import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.UserContext;
 import com.tutor.platform.domain.OrderDomain;
 import com.tutor.platform.dto.AppointmentCreateDTO;
@@ -149,7 +150,8 @@ public class OrderServiceImpl implements OrderService {
             qw.eq(AppointmentEntity::getStudentId, uid);
         }
         qw.orderByDesc(AppointmentEntity::getCreateTime);
-        IPage<AppointmentEntity> p = appointmentMapper.selectPage(new Page<>(page, size), qw);
+        IPage<AppointmentEntity> p = appointmentMapper.selectPage(
+                new Page<>(PageParam.normalizePage(page), PageParam.normalizeSize(size)), qw);
         return p.convert(this::toVO);
     }
 
@@ -196,7 +198,8 @@ public class OrderServiceImpl implements OrderService {
             qw.eq(AppointmentEntity::getStatus, status);
         }
         qw.orderByDesc(AppointmentEntity::getCreateTime);
-        IPage<AppointmentEntity> p = appointmentMapper.selectPage(new Page<>(page, size), qw);
+        IPage<AppointmentEntity> p = appointmentMapper.selectPage(
+                new Page<>(PageParam.normalizePage(page), PageParam.normalizeSize(size)), qw);
         return p.convert(this::toVO);
     }
 
@@ -285,15 +288,16 @@ public class OrderServiceImpl implements OrderService {
                     .subjectId(sid).subjectName(sname).income(amount).orderCount(cnt).build());
         }
 
-        // 订单状态分布
-        String[] statusNames = {"待确认", "已预约", "授课中", "已完成", "已取消", "已拒绝"};
+        // 订单状态分布：状态名统一由 OrderDomain 提供，避免多处维护映射表
         List<TutorDashboardVO.StatusCountVO> statusList = new ArrayList<>();
         for (Map<String, Object> row : appointmentMapper.statusDistribution(tutorId)) {
             Integer st = row.get("status") == null ? null : ((Number) row.get("status")).intValue();
             long cnt = row.get("cnt") == null ? 0 : ((Number) row.get("cnt")).longValue();
-            String name = (st != null && st >= 0 && st < statusNames.length) ? statusNames[st] : "未知";
             statusList.add(TutorDashboardVO.StatusCountVO.builder()
-                    .status(st).statusName(name).count(cnt).build());
+                    .status(st)
+                    .statusName(st == null ? "未知" : OrderDomain.statusText(st))
+                    .count(cnt)
+                    .build());
         }
 
         TutorDashboardVO result = TutorDashboardVO.builder()
@@ -356,6 +360,7 @@ public class OrderServiceImpl implements OrderService {
                 .timeSlot(o.getTimeSlot())
                 .totalPrice(o.getTotalPrice())
                 .status(o.getStatus())
+                .statusName(o.getStatus() == null ? null : OrderDomain.statusText(o.getStatus()))
                 .createTime(o.getCreateTime())
                 .build();
     }

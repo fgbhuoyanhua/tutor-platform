@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.BizException;
 import com.tutor.platform.entity.SubjectEntity;
 import com.tutor.platform.entity.TutorEntity;
@@ -138,7 +139,8 @@ public class TutorServiceImpl implements TutorService {
            .like(StringUtils.hasText(keyword), TutorEntity::getIntroduce, keyword)
            .orderByDesc(TutorEntity::getRating);
 
-        IPage<TutorEntity> p = tutorMapper.selectPage(new Page<>(page, size), qw);
+        IPage<TutorEntity> p = tutorMapper.selectPage(
+                new Page<>(PageParam.normalizePage(page), PageParam.normalizeSize(size)), qw);
         List<TutorEntity> records = p.getRecords();
         Map<Long, Long> evalCount = countMap(evaluationMapper.countGroupByTutorIds(userIds(records)), records);
         Map<Long, Long> finishedCount = countMap(appointmentMapper.countFinishedGroupByTutorIds(userIds(records)), records);

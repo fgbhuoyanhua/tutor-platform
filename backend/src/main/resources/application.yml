@@ -17,7 +17,9 @@ mybatis-plus:
   type-aliases-package: com.tutor.platform.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 用 Slf4j 而非 StdOut：SQL 日志交给 logging.level 控制，默认不刷屏；
+    # 需要排查时把 com.tutor.platform.mapper 调到 debug 即可
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
       id-type: auto
@@ -25,11 +27,29 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# 健康检查（/actuator/health），仅暴露 health/info，不暴露敏感端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# 日志级别：默认 INFO，生产可用 LOG_LEVEL 覆盖
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.tutor.platform: ${LOG_LEVEL:INFO}
+    # 数据库访问日志默认不输出，排查时改为 debug
+    com.tutor.platform.mapper: info
 
 jwt:
   # 生产环境务必通过环境变量 JWT_SECRET 覆盖

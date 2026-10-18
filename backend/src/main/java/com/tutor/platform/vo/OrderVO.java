@@ -43,5 +43,8 @@ public class OrderVO {
     /** 0待确认 1已预约 2授课中 3已完成 4已取消 5已拒绝 */
     private Integer status;
 
+    /** 状态中文名（由后端统一给出，避免前端各自维护映射表） */
+    private String statusName;
+
     private LocalDateTime createTime;
 }

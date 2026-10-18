@@ -3,6 +3,7 @@ package com.tutor.platform.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.BizException;
 import com.tutor.platform.domain.OrderDomain;
 import com.tutor.platform.dto.EvaluationCreateDTO;
@@ -79,7 +80,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 
     @Override
     public IPage<EvaluationVO> pageByTutor(Long tutorUserId, long page, long size) {
-        IPage<EvaluationEntity> p = evaluationMapper.selectPage(new Page<>(page, size),
+        IPage<EvaluationEntity> p = evaluationMapper.selectPage(
+                new Page<>(PageParam.normalizePage(page), PageParam.normalizeSize(size)),
                 new LambdaQueryWrapper<EvaluationEntity>()
                         .eq(EvaluationEntity::getTutorId, tutorUserId)
                         .orderByDesc(EvaluationEntity::getCreateTime));

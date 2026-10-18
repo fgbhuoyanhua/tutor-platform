@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tutor.platform.common.ApiResponse;
+import com.tutor.platform.common.MaskUtil;
+import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.PageResult;
 import com.tutor.platform.common.UserContext;
 import com.tutor.platform.entity.AppointmentEntity;
@@ -19,6 +21,7 @@ import com.tutor.platform.security.AdminLog;
 import com.tutor.platform.security.RequireRole;
 import com.tutor.platform.service.OrderService;
 import com.tutor.platform.service.TutorService;
+import com.tutor.platform.vo.AdminUserVO;
 import com.tutor.platform.vo.OrderVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -161,11 +164,23 @@ public class AdminController {
     @Operation(summary = "用户列表")
     @GetMapping("/users")
     @RequireRole({UserContext.ROLE_ADMIN})
-    public ApiResponse<PageResult<UserEntity>> users(@RequestParam(defaultValue = "1") long page,
-                                                     @RequestParam(defaultValue = "10") long size) {
-        IPage<UserEntity> p = userMapper.selectPage(new Page<>(page, size),
+    public ApiResponse<PageResult<AdminUserVO>> users(@RequestParam(defaultValue = "1") long page,
+                                                      @RequestParam(defaultValue = "10") long size) {
+        IPage<UserEntity> p = userMapper.selectPage(
+                new Page<>(PageParam.normalizePage(page), PageParam.normalizeSize(size)),
                 new LambdaQueryWrapper<UserEntity>().orderByDesc(UserEntity::getCreateTime));
-        return ApiResponse.ok(PageResult.of(p));
+        // 实体转 VO：手机号脱敏；VO 中不含密码字段，从结构上杜绝泄漏
+        IPage<AdminUserVO> vo = p.convert(u -> AdminUserVO.builder()
+                .id(u.getId())
+                .username(u.getUsername())
+                .role(u.getRole())
+                .realName(u.getRealName())
+                .phone(MaskUtil.maskPhone(u.getPhone()))
+                .avatar(u.getAvatar())
+                .status(u.getStatus())
+                .createTime(u.getCreateTime())
+                .build());
+        return ApiResponse.ok(PageResult.of(vo));
     }
 
     @Operation(summary = "用户管理：禁用/启用")
@@ -186,7 +201,8 @@ public class AdminController {
     @RequireRole({UserContext.ROLE_ADMIN})
     public ApiResponse<PageResult<AdminLogEntity>> logs(@RequestParam(defaultValue = "1") long page,
                                                         @RequestParam(defaultValue = "10") long size) {
-        IPage<AdminLogEntity> p = adminLogMapper.selectPage(new Page<>(page, size),
+        IPage<AdminLogEntity> p = adminLogMapper.selectPage(
+                new Page<>(PageParam.normalizePage(page), PageParam.normalizeSize(size)),
                 new LambdaQueryWrapper<AdminLogEntity>().orderByDesc(AdminLogEntity::getCreateTime));
         return ApiResponse.ok(PageResult.of(p));
     }
