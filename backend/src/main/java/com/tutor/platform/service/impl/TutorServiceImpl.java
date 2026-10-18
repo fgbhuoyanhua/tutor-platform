@@ -3,6 +3,7 @@ package com.tutor.platform.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tutor.platform.common.BizException;
 import com.tutor.platform.entity.SubjectEntity;
 import com.tutor.platform.entity.TutorEntity;
@@ -15,7 +16,12 @@ import com.tutor.platform.mapper.UserMapper;
 import com.tutor.platform.service.MessageService;
 import com.tutor.platform.service.TutorService;
 import com.tutor.platform.vo.TutorVO;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -25,11 +31,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
  * 家教信息服务实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TutorServiceImpl implements TutorService {
@@ -40,6 +48,8 @@ public class TutorServiceImpl implements TutorService {
     private final EvaluationMapper evaluationMapper;
     private final AppointmentMapper appointmentMapper;
     private final MessageService messageService;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Long publish(Long userId, TutorEntity tutor) {
@@ -85,9 +95,41 @@ public class TutorServiceImpl implements TutorService {
         }
     }
 
+    /**
+     * 老师列表分页查询（仅已上架的老师）
+     * 
+     * 性能优化：加Redis缓存，缓存Key为 tutor:list:{page}:{size}:{subjectId}:{priceMin}:{priceMax}:{keyword}，过期时间3分钟
+     * 理由：学生每次打开首页都会调用此接口，涉及多次数据库查询，加缓存可大幅减少数据库压力
+     * 
+     * @param page 页码
+     * @param size 每页数量
+     * @param subjectId 科目ID（可选）
+     * @param priceMin 最低价格（可选）
+     * @param priceMax 最高价格（可选）
+     * @param keyword 关键词（可选）
+     * @return 分页结果
+     */
     @Override
     public IPage<TutorVO> pageList(long page, long size, Long subjectId,
                                    BigDecimal priceMin, BigDecimal priceMax, String keyword) {
+        // 生成缓存Key
+        String cacheKey = String.format("tutor:list:%d:%d:%s:%s:%s:%s",
+            page, size, subjectId, priceMin, priceMax, keyword);
+
+        // 先查缓存：把分页结果转成纯数据对象再序列化，避免直接缓存 IPage 实现类
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                CachedTutorPage hit = objectMapper.readValue(cached, CachedTutorPage.class);
+                Page<TutorVO> p = new Page<>(hit.getPage(), hit.getSize(), hit.getTotal());
+                p.setRecords(hit.getRecords());
+                return p;
+            }
+        } catch (Exception e) {
+            log.debug("家教列表缓存读取失败，降级查库: {}", e.getMessage());
+        }
+
+        // 缓存未命中，查数据库
         LambdaQueryWrapper<TutorEntity> qw = new LambdaQueryWrapper<>();
         qw.eq(TutorEntity::getStatus, 1) // 仅已上架
            .eq(subjectId != null, TutorEntity::getSubjectId, subjectId)
@@ -100,7 +142,32 @@ public class TutorServiceImpl implements TutorService {
         List<TutorEntity> records = p.getRecords();
         Map<Long, Long> evalCount = countMap(evaluationMapper.countGroupByTutorIds(userIds(records)), records);
         Map<Long, Long> finishedCount = countMap(appointmentMapper.countFinishedGroupByTutorIds(userIds(records)), records);
-        return p.convert(t -> toVO(t, evalCount, finishedCount));
+        IPage<TutorVO> result = p.convert(t -> toVO(t, evalCount, finishedCount));
+
+        // 写入缓存，过期时间3分钟；写失败不影响返回结果
+        try {
+            CachedTutorPage payload = new CachedTutorPage();
+            payload.setPage(result.getCurrent());
+            payload.setSize(result.getSize());
+            payload.setTotal(result.getTotal());
+            payload.setRecords(result.getRecords());
+            redisTemplate.opsForValue().set(cacheKey,
+                    objectMapper.writeValueAsString(payload), 180, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.debug("家教列表缓存写入失败，已忽略: {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /** 家教列表缓存载体：只保留分页元数据与记录，规避 IPage 实现类无法序列化的问题 */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CachedTutorPage {
+        private long page;
+        private long size;
+        private long total;
+        private List<TutorVO> records;
     }
 
     @Override

@@ -1,13 +1,17 @@
 package com.tutor.platform.vo;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 老师视角"我的学生"聚合视图
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class MyStudentVO {
 
     private Long studentId;

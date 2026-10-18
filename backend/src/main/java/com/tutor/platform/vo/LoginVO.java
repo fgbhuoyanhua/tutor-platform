@@ -1,13 +1,17 @@
 package com.tutor.platform.vo;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 登录成功返回：JWT 令牌 + 用户信息（含角色，用于客户端按角色分发）
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class LoginVO {
 
     private String token;

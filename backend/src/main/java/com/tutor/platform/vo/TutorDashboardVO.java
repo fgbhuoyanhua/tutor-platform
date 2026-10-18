@@ -1,7 +1,9 @@
 package com.tutor.platform.vo;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.List;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TutorDashboardVO {
 
     /** 累计收入（已完成订单） */
@@ -36,6 +40,8 @@ public class TutorDashboardVO {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SubjectIncomeVO {
         private Long subjectId;
         private String subjectName;
@@ -45,6 +51,8 @@ public class TutorDashboardVO {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class StatusCountVO {
         private Integer status;
         private String statusName;

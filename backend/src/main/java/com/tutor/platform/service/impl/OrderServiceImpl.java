@@ -23,8 +23,11 @@ import com.tutor.platform.vo.IncomeVO;
 import com.tutor.platform.vo.MyStudentVO;
 import com.tutor.platform.vo.OrderVO;
 import com.tutor.platform.vo.TutorDashboardVO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,10 +39,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 预约订单服务实现：核心流转均经 OrderDomain 状态机校验 + 条件更新防并发
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
@@ -50,6 +55,8 @@ public class OrderServiceImpl implements OrderService {
     private final SubjectMapper subjectMapper;
     private final MessageService messageService;
     private final RescheduleMapper rescheduleMapper;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -223,8 +230,32 @@ public class OrderServiceImpl implements OrderService {
         return result;
     }
 
+    /**
+     * 老师端数据看板汇总（收入/订单/趋势/学科分布/状态分布）
+     * 
+     * 性能优化：加Redis缓存，缓存Key为 dashboard:{tutorId}，过期时间5分钟
+     * 理由：老师每次打开首页都会调用此接口，涉及多次数据库聚合查询，加缓存可大幅减少数据库压力
+     * 
+     * @param tutorId 老师用户ID
+     * @return 看板数据（总收入、总订单数、已完成订单数、待确认订单数、收入趋势、学科分布、状态分布）
+     */
     @Override
     public TutorDashboardVO dashboard(Long tutorId) {
+        String cacheKey = "dashboard:" + tutorId;
+
+        // 先查缓存：Redis 不可用或反序列化失败时降级为直接查库，不影响主流程
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null && !cached.isEmpty()) {
+                TutorDashboardVO hit = objectMapper.readValue(cached, TutorDashboardVO.class);
+                if (hit != null) {
+                    return hit;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("看板缓存读取失败，降级查库: {}", e.getMessage());
+        }
+
         List<IncomeVO> trend = incomeLast6Months(tutorId);
         BigDecimal totalIncome = trend.stream()
                 .map(IncomeVO::getTotalIncome)
@@ -265,7 +296,7 @@ public class OrderServiceImpl implements OrderService {
                     .status(st).statusName(name).count(cnt).build());
         }
 
-        return TutorDashboardVO.builder()
+        TutorDashboardVO result = TutorDashboardVO.builder()
                 .totalIncome(totalIncome)
                 .totalOrders(appointmentMapper.selectCount(
                         new LambdaQueryWrapper<AppointmentEntity>().eq(AppointmentEntity::getTutorId, tutorId)))
@@ -275,6 +306,15 @@ public class OrderServiceImpl implements OrderService {
                 .subjectIncome(subjectList)
                 .statusDistribution(statusList)
                 .build();
+        
+        // 写入缓存，过期时间5分钟；写失败不影响返回结果
+        try {
+            redisTemplate.opsForValue().set(cacheKey,
+                    objectMapper.writeValueAsString(result), 300, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.debug("看板缓存写入失败，已忽略: {}", e.getMessage());
+        }
+        return result;
     }
 
     @Override

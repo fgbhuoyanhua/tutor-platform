@@ -73,6 +73,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(RegisterDTO dto) {
+        // 输入验证：手机号格式
+        if (dto.getPhone() == null || !dto.getPhone().matches("^1[3-9]\\d{9}$")) {
+            throw new BizException(400, "手机号格式不正确");
+        }
+        // 输入验证：密码强度
+        if (dto.getPassword() == null || dto.getPassword().length() < 6 || dto.getPassword().length() > 20) {
+            throw new BizException(400, "密码长度必须为6-20位");
+        }
+        // 输入验证：用户名长度
+        if (dto.getRealName() == null || dto.getRealName().length() < 2 || dto.getRealName().length() > 20) {
+            throw new BizException(400, "姓名长度必须为2-20位");
+        }
         // 服务层兜底：注册角色仅允许学生(1)/老师(2)，防止越权注册管理员(3)
         if (dto.getRole() == null || (dto.getRole() != 1 && dto.getRole() != 2)) {
             throw new BizException(400, "注册角色仅支持学生(1)或老师(2)");
