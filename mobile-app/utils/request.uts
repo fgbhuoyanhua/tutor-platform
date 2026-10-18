@@ -8,21 +8,28 @@ function getToken(): string {
   return v == null || v == '' ? '' : (v as string)
 }
 
-function toJsonData(d: Map<string, any> | null): UTSJSONObject | null {
+function toJsonData(d: any | null): UTSJSONObject | null {
   if (d == null) return null
+  // 已经是 UTSJSONObject：直接透传，不要强转成 Map（会抛
+  // "UTSJSONObject cannot be cast to io.dcloud.uts.Map"）
+  if (d instanceof UTSJSONObject) {
+    return d as UTSJSONObject
+  }
   const obj = new UTSJSONObject()
-  d.forEach((v: any, k: string) => {
-    obj.set(k, v)
-  })
+  if (d instanceof Map) {
+    (d as Map<string, any>).forEach((v: any, k: string) => {
+      obj.set(k, v)
+    })
+  }
   return obj
 }
 
 export function request(
   method: string,
   url: string,
-  data: Map<string, any> | null
+  data: any | null
 ): Promise<UTSJSONObject> {
-  return new Promise((resolve, reject) => {
+  return new Promise<UTSJSONObject>((resolve, reject) => {
     const header = new UTSJSONObject()
     header.set('Content-Type', 'application/json')
     const token = getToken()
@@ -58,15 +65,30 @@ export function request(
         }
         const code = body['code'] as number
         if (code == 200) {
-          const d = body['data']
-          if (d == null) {
+          // 注意：不能直接写 `const d = body['data']`，UTS 会把 d 推断成
+          // UTSJSONObject，后端返回数字/数组时会抛类型转换异常。
+          // 这里按 any 取出后分情况处理，每种情况单独 resolve，避免对
+          // 已声明为 UTSJSONObject 的变量重新赋 any 值（同样会触发强转）。
+          try {
+            const dAny: any | null = body['data']
+            if (dAny == null) {
+              resolve(new UTSJSONObject())
+            } else if (Array.isArray(dAny)) {
+              const w = new UTSJSONObject()
+              w.set('list', dAny as any)
+              resolve(w)
+            } else if (typeof dAny == 'object') {
+              resolve(dAny as UTSJSONObject)
+            } else {
+              // 数字/字符串/布尔等原始值
+              const w = new UTSJSONObject()
+              w.set('list', dAny as any)
+              w.set('data', dAny as any)
+              resolve(w)
+            }
+          } catch (e) {
+            // 兜底：类型判断失败也不影响业务层流程
             resolve(new UTSJSONObject())
-          } else if (typeof d == 'object' && !Array.isArray(d)) {
-            resolve(d as UTSJSONObject)
-          } else {
-            const wrap = new UTSJSONObject()
-            wrap.set('list', d)
-            resolve(wrap)
           }
         } else {
           const msg = body['message'] as string
@@ -95,12 +117,12 @@ export function get(url: string, query: Map<string, any> | null): Promise<UTSJSO
   return request('GET', full, null)
 }
 
-export function post(url: string, data: Map<string, any> | UTSJSONObject): Promise<UTSJSONObject> {
-  return request('POST', url, data as Map<string, any>)
+export function post(url: string, data: UTSJSONObject | Map<string, any>): Promise<UTSJSONObject> {
+  return request('POST', url, data)
 }
 
-export function put(url: string, data: Map<string, any> | UTSJSONObject): Promise<UTSJSONObject> {
-  return request('PUT', url, data as Map<string, any>)
+export function put(url: string, data: UTSJSONObject | Map<string, any>): Promise<UTSJSONObject> {
+  return request('PUT', url, data)
 }
 
 export function del(url: string): Promise<UTSJSONObject> {

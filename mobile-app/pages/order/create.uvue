@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view v-if="tutor != null" class="card">
       <view class="detail-head">
@@ -91,6 +91,10 @@ export default {
         uni.showToast({ title: '请选择时间段', icon: 'none' })
         return
       }
+      if (this.tutor == null) {
+        uni.showToast({ title: '老师信息未加载', icon: 'none' })
+        return
+      }
       this.loading = true
       try {
         const body = new UTSJSONObject()
@@ -103,8 +107,10 @@ export default {
         setTimeout(() => {
           uni.switchTab({ url: '/pages/order/list' })
         }, 600)
-      } catch (e) {
-        uni.showToast({ title: '预约失败', icon: 'none' })
+      } catch (e: any) {
+        // UTS 不支持 e instanceof Error，直接取 message
+        const msg = (e != null && e.message != null) ? (e.message as string) : '预约失败'
+        uni.showToast({ title: msg, icon: 'none', duration: 3000 })
       } finally {
         this.loading = false
       }

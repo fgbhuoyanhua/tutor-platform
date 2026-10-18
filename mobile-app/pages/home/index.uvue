@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view v-if="role == 2" class="workbench">
       <view class="welcome">
@@ -60,7 +60,7 @@
       </view>
     </view>
 
-    <block v-if="role != 2">
+    <template v-if="role != 2">
     <view class="quick-grid student-quick">
       <view class="quick-item" @click="goStudentCalendar">
         <text class="quick-icon">📅</text>
@@ -120,7 +120,7 @@
     </view>
 
     <text v-if="!loading && list.length == 0" class="empty">暂无符合条件的家教</text>
-    </block>
+    </template>
   </scroll-view>
 </template>
 
