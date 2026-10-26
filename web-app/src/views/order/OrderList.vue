@@ -34,6 +34,7 @@
               <el-button v-if="row.status === 0" link type="success" size="small" @click="doAction(row, 'confirm')">接单</el-button>
               <el-button v-if="row.status === 0" link type="danger" size="small" @click="doAction(row, 'reject')">拒绝</el-button>
               <template v-if="row.status === 1">
+                <el-button link type="primary" size="small" @click="doAction(row, 'start')">开始授课</el-button>
                 <el-button link type="success" size="small" @click="doAction(row, 'rsAccept')">同意调课</el-button>
                 <el-button link type="warning" size="small" @click="doAction(row, 'rsReject')">拒绝调课</el-button>
               </template>
@@ -119,6 +120,7 @@ import {
   confirmOrder,
   rejectOrder,
   cancelOrder,
+  startOrder,
   finishOrder,
   rescheduleRequest,
   rescheduleAccept,
@@ -160,6 +162,7 @@ const ACTIONS: Record<string, { title: string; text: string; fn: (id: number) =>
   confirm: { title: '接单', text: '确认接单后不可撤销，确定接单吗？', fn: confirmOrder },
   reject: { title: '拒绝', text: '确定拒绝该预约吗？', fn: rejectOrder },
   cancel: { title: '取消', text: '确定取消该预约吗？', fn: cancelOrder },
+  start: { title: '开始授课', text: '确认开始授课？开始后学生可确认完成。', fn: startOrder },
   finish: { title: '确认完成', text: '确认已完成授课？', fn: finishOrder },
   rsAccept: { title: '同意调课', text: '同意后订单时间将改为学生申请的新时间，确认？', fn: rescheduleAccept },
   rsReject: { title: '拒绝调课', text: '拒绝后仍按原时间上课，确认拒绝？', fn: rescheduleReject },

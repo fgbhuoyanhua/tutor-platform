@@ -145,4 +145,21 @@ class OrderServiceCreateTest {
         BizException e = assertThrows(BizException.class, () -> orderService.create(10L, dto()));
         assertEquals("该时段已被预约，请选择其他时间", e.getMessage());
     }
+
+    /**
+     * DEFECT-2 回归：修复后唯一索引改名为 uk_slot_active（生成列 active_flag），
+     * 冲突提示逻辑必须同样识别新索引名，否则会误报「下单过于频繁」。
+     */
+    @Test
+    @DisplayName("并发时段冲突：新唯一索引 uk_slot_active 冲突同样转友好提示")
+    void handleUniqueSlotActiveConflict() {
+        when(tutorMapper.selectById(1L)).thenReturn(tutor(2L, 1));
+        when(appointmentMapper.countConflict(anyLong(), any(), anyString())).thenReturn(0L);
+        when(appointmentMapper.insert(any(AppointmentEntity.class)))
+                .thenThrow(new DuplicateKeyException(
+                        "Duplicate entry '2-2026-10-26-08:00-10:00-1' for key 'appointment.uk_slot_active'"));
+
+        BizException e = assertThrows(BizException.class, () -> orderService.create(10L, dto()));
+        assertEquals("该时段已被预约，请选择其他时间", e.getMessage());
+    }
 }

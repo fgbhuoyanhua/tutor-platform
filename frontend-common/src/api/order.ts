@@ -31,6 +31,11 @@ export function cancelOrder(id: number): Promise<void> {
   return put<void>(`/appointments/${id}/cancel`);
 }
 
+/** 老师开始授课（已预约 → 授课中） */
+export function startOrder(id: number): Promise<void> {
+  return put<void>(`/appointments/${id}/start`);
+}
+
 /** 学生确认完成授课 */
 export function finishOrder(id: number): Promise<void> {
   return put<void>(`/appointments/${id}/finish`);

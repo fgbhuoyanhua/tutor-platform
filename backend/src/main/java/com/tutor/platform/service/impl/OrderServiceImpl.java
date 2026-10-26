@@ -87,7 +87,8 @@ public class OrderServiceImpl implements OrderService {
         try {
             appointmentMapper.insert(order);
         } catch (DuplicateKeyException ex) {
-            // 时段唯一索引(uk_slot)冲突 → 并发下同一时段被抢先预约，给出精确提示
+            // 时段唯一索引(uk_slot_active)冲突 → 并发下同一时段被抢先预约，给出精确提示
+            // 注：旧索引名为 uk_slot，新索引名为 uk_slot_active，两者都包含 "uk_slot" 子串
             String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
             if (msg.contains("uk_slot")) {
                 throw new BizException(400, "该时段已被预约，请选择其他时间");

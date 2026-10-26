@@ -1,6 +1,6 @@
 // 后端地址：真机/模拟器调本机后端时用局域网 IP（IP 会变，测试前先 ipconfig 确认）
-// 当前本机无线 IP：192.168.1.7
-const BASE_URL = 'http://192.168.1.7:8080/api'
+// 当前本机无线 IP：192.168.30.239（2026-10-26 更新）
+const BASE_URL = 'http://192.168.30.239:8080/api'
 const TOKEN_KEY = 'tutor_platform_token'
 
 function getToken(): string {

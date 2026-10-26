@@ -64,12 +64,19 @@ CREATE TABLE `appointment` (
   `status`       TINYINT       NOT NULL COMMENT '0待确认 1已预约 2授课中 3已完成 4已取消 5已拒绝',
   `pay_status`   TINYINT       NOT NULL DEFAULT 0 COMMENT '支付状态：0未支付 1已支付',
   `create_time`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '下单时间',
+  -- 有效占位标记：订单处于有效状态(0待确认/1已预约/2授课中)时为 1，否则为 NULL。
+  -- MySQL 唯一索引允许多个 NULL，故已完成/已取消/已拒绝 的订单不会互相冲突。
+  `active_flag`  TINYINT       GENERATED ALWAYS AS (
+                   CASE WHEN `status` IN (0, 1, 2) THEN 1 ELSE NULL END
+                 ) STORED COMMENT '有效占位标记（生成列）',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_no` (`order_no`),
   KEY `idx_student` (`student_id`),
   KEY `idx_tutor` (`tutor_id`),
-  -- 并发冲突兜底：同一老师同一日期同一时间段仅允许一个有效预约（有效状态 0/1/2）
-  UNIQUE KEY `uk_slot` (`tutor_id`, `appoint_date`, `time_slot`, `status`)
+  -- 并发冲突兜底：同一老师同一日期同一时间段仅允许一个【有效】预约（状态 0/1/2）。
+  -- ⚠️ 不能把 status 直接放进唯一键：否则同一时段只能各存在一条已完成/已取消订单，
+  --    正常的复购场景（同一老师同一时段上第二次课）会在「确认完成」时抛 uk_slot 冲突。
+  UNIQUE KEY `uk_slot_active` (`tutor_id`, `appoint_date`, `time_slot`, `active_flag`)
 ) ENGINE=InnoDB COMMENT='预约订单表';
 
 -- 评价表
@@ -99,6 +106,62 @@ CREATE TABLE `message` (
   PRIMARY KEY (`id`),
   KEY `idx_to_read` (`to_id`, `is_read`)
 ) ENGINE=InnoDB COMMENT='消息表';
+
+-- 收藏表（学生收藏家教）
+DROP TABLE IF EXISTS `favorite`;
+CREATE TABLE `favorite` (
+  `id`          BIGINT   NOT NULL AUTO_INCREMENT COMMENT '收藏ID',
+  `student_id`  BIGINT   NOT NULL COMMENT '学生 user.id',
+  `tutor_id`    BIGINT   NOT NULL COMMENT '家教信息 tutor.id',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_student_tutor` (`student_id`, `tutor_id`)
+) ENGINE=InnoDB COMMENT='收藏表';
+
+-- 调课申请表
+DROP TABLE IF EXISTS `reschedule`;
+CREATE TABLE `reschedule` (
+  `id`          BIGINT      NOT NULL AUTO_INCREMENT COMMENT '调课申请ID',
+  `order_id`    BIGINT      NOT NULL COMMENT '订单 appointment.id',
+  `student_id`  BIGINT      NOT NULL COMMENT '发起申请的 student user.id',
+  `old_date`    DATE        DEFAULT NULL COMMENT '原预约日期',
+  `old_slot`    VARCHAR(20) DEFAULT NULL COMMENT '原时间段',
+  `new_date`    DATE        DEFAULT NULL COMMENT '申请的新日期',
+  `new_slot`    VARCHAR(20) DEFAULT NULL COMMENT '申请的新时间段',
+  `status`      TINYINT     NOT NULL DEFAULT 0 COMMENT '0待同意 1已同意 2已拒绝',
+  `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_order` (`order_id`)
+) ENGINE=InnoDB COMMENT='调课申请表';
+
+-- 学习报告表（老师对已完成订单填写）
+DROP TABLE IF EXISTS `study_report`;
+CREATE TABLE `study_report` (
+  `id`          BIGINT   NOT NULL AUTO_INCREMENT COMMENT '报告ID',
+  `order_id`    BIGINT   NOT NULL COMMENT '订单 appointment.id',
+  `teacher_id`  BIGINT   NOT NULL COMMENT '填写老师 user.id',
+  `student_id`  BIGINT   NOT NULL COMMENT '学生 user.id',
+  `content`     TEXT     NOT NULL COMMENT '报告内容',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_order` (`order_id`)
+) ENGINE=InnoDB COMMENT='学习报告表';
+
+-- 管理员操作日志表
+DROP TABLE IF EXISTS `admin_log`;
+CREATE TABLE `admin_log` (
+  `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `admin_id`    BIGINT       NOT NULL COMMENT '操作管理员 user.id',
+  `admin_name`  VARCHAR(50)  DEFAULT NULL COMMENT '管理员用户名',
+  `action`      VARCHAR(50)  NOT NULL COMMENT '操作类型',
+  `target_type` VARCHAR(20)  DEFAULT NULL COMMENT '操作对象类型',
+  `target_id`   BIGINT       DEFAULT NULL COMMENT '操作对象ID',
+  `detail`      VARCHAR(255) DEFAULT NULL COMMENT '操作详情',
+  `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_id` (`admin_id`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB COMMENT='管理员操作日志表';
 
 -- ============================================================
 -- 种子数据说明：
