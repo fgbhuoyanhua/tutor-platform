@@ -35,7 +35,10 @@ application-local.yml
 .env.local
 
 # 工具和编译缓存
-.tools/
+.tools/**
+# 可复用的回归测试脚本要提交（换电脑后能直接跑）
+!.tools/*.py
+!.tools/*.ps1
 mobile-app/unpackage/
 *.zip
 _*.png
