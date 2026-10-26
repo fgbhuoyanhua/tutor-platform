@@ -39,6 +39,12 @@ application-local.yml
 # 可复用的回归测试脚本要提交（换电脑后能直接跑）
 !.tools/*.py
 !.tools/*.ps1
+# 但临时/调试/一次性脚本不提交
+.tools/_tmp*
+.tools/_dbg*
+.tools/dbg_*
+.tools/probe_*
+.tools/git_push*
 mobile-app/unpackage/
 *.zip
 _*.png
