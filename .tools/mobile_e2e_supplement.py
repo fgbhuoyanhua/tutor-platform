@@ -23,7 +23,12 @@ from pathlib import Path
 
 import uiautomator2 as u2
 
-DEVICE = "127.0.0.1:16384"
+# 设备端口由 MuMuManager 实测得出（端口会浮动，别写死）
+try:
+    from deploy_mobile import resolve_serial
+    DEVICE = resolve_serial()
+except Exception:
+    DEVICE = "127.0.0.1:16384"
 ADB = r"C:\Program Files\Netease\MuMuPlayer-12.0\shell\adb.exe"
 SHOT = Path(r"E:\毕业设计\project\docs\web-e2e-shots")
 PKG = "io.dcloud.uniappx"

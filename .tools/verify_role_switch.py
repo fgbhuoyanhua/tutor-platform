@@ -16,7 +16,13 @@ import uiautomator2 as u2
 
 PKG = "io.dcloud.uniappx"
 ADB = r"C:\Program Files\Netease\MuMuPlayer-12.0\shell\adb.exe"
-DEV = "127.0.0.1:16384"
+
+# 设备端口由 MuMuManager 实测得出（端口会浮动，别写死）
+try:
+    from deploy_mobile import resolve_serial
+    DEV = resolve_serial()
+except Exception:
+    DEV = "127.0.0.1:16384"
 USERNAME = (539, 546)
 PASSWORD = (539, 697)
 LOGIN_BTN = (539, 881)

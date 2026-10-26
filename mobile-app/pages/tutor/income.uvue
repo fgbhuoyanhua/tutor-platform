@@ -140,10 +140,14 @@ export default {
 <style>
 .page {
   background: #f5f7fa;
-  padding-bottom: 120rpx;
+  /* ⚠️ 不要在这里再加 padding-bottom：
+     实测「padding 加在 scroll-view 上会导致无法滚动」（交接单第十一节第 7 条）。
+     底部间距由页面内容末尾的 card 的 margin-bottom 承担。 */
 }
 .page-inner {
   padding: 20rpx;
+  /* 底部留白放内层，绕开 scroll-view 自身 padding 的坑 */
+  padding-bottom: 60rpx;
 }
 .stat-grid {
   display: flex;
@@ -199,7 +203,10 @@ export default {
   flex-direction: row;
   align-items: flex-end;
   /* 不用 gap，用每个 bar-col 的左右 margin 做出间距 */
-  height: 200px;
+  /* ⚠️ 不要在这里写固定 height（如 200px）。
+     2026-10-26 实测：去掉它并不能让本页滚动（已排除为根因），
+     但「父容器固定高度 + 子元素内联 :style 高度」这种组合没有收益，
+     高度交给 .bar-col 自己撑更稳。 */
   padding-top: 10px;
 }
 .bar-col {

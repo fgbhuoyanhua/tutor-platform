@@ -33,6 +33,8 @@ HBX_CLI = r"E:\HBuilderX\cli.exe"
 HBX_EXE_NAME = "HBuilderX.exe"
 ADB = r"C:\Program Files\Netease\MuMuPlayer-12.0\shell\adb.exe"
 MUMU_MGR = r"C:\Program Files\Netease\MuMuPlayer-12.0\nx_main\MuMuManager.exe"
+# 设备地址不再写死：MuMu 的 adb 端口会随实例浮动（实测见过 16384 / 16385 / 7555）。
+# 由 resolve_device() 在运行时探测，详见该函数。这里只是找不到时的兜底值。
 DEVICE = "127.0.0.1:16384"
 PKG = "io.dcloud.uniappx"
 ACTIVITY = f"{PKG}/io.dcloud.uniapp.UniAppActivity"
@@ -41,7 +43,14 @@ LOG = Path(r"C:\Users\33846\AppData\Local\Temp\hbx_deploy.log")
 
 
 def say(msg):
-    print(msg, flush=True)
+    """输出一行。控制台是 GBK，遇到 ✓/✗ 这类字符会抛 UnicodeEncodeError，
+    把「编译已成功」这一步误报成脚本崩溃，所以这里容错降级。"""
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        enc = sys.stdout.encoding or "gbk"
+        print(msg.encode(enc, errors="replace").decode(enc, errors="replace"),
+              flush=True)
 
 
 # ---------- 基础探测 ----------
@@ -68,9 +77,91 @@ def hbx_running():
         return False
 
 
+def _mumu_adb_port():
+    """问 MuMuManager 实例 0 实际的 adb 端口；拿不到返回 None"""
+    try:
+        r = subprocess.run([MUMU_MGR, "info", "-v", "0"],
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="ignore", timeout=20)
+        m = re.search(r'"adb_port"\s*:\s*(\d+)', r.stdout or "")
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def _connected_serials():
+    """adb devices 里处于 device 状态的所有序列号"""
+    try:
+        r = subprocess.run([ADB, "devices"], capture_output=True, text=True,
+                           encoding="utf-8", errors="ignore", timeout=15)
+        out = r.stdout or ""
+    except Exception:
+        return []
+    return [ln.split("\t")[0].strip() for ln in out.splitlines()
+            if "\tdevice" in ln]
+
+
+def resolve_device():
+    """探测当前可用的设备序列号，写入全局 DEVICE
+
+    优先级：
+      1. MuMuManager 报告的 adb_port（最准，跟着实例走）
+      2. adb devices 里已连上的 127.0.0.1:<port> / emulator-*
+      3. 兜底常量 DEVICE
+
+    2026-10-26 踩坑：端口写死 16384，实际实例起在 16385，
+    脚本一直报「无法连接模拟器」，误以为模拟器没起来。
+    """
+    global DEVICE
+    port = _mumu_adb_port()
+    if port:
+        cand = f"127.0.0.1:{port}"
+        if cand not in _connected_serials():
+            try:
+                subprocess.run([ADB, "connect", cand], capture_output=True,
+                               text=True, timeout=15)
+            except Exception:
+                pass
+        if cand in _connected_serials():
+            DEVICE = cand
+            return DEVICE
+        # 连不上也先记住端口，后面 ensure_device 会重试
+        DEVICE = cand
+        return DEVICE
+
+    for s in _connected_serials():
+        if s.startswith("127.0.0.1:") or s.startswith("emulator-"):
+            DEVICE = s
+            return DEVICE
+    return DEVICE
+
+
 def device_connected():
     out = adb("devices", timeout=10)
     return f"{DEVICE}\tdevice" in out
+
+
+def resolve_serial():
+    """给测试脚本共用的设备序列号探测（不依赖 deploy_mobile 的全局状态）
+
+    用法：
+        from deploy_mobile import resolve_serial
+        d = u2.connect(resolve_serial())
+    """
+    port = _mumu_adb_port()
+    if port:
+        cand = f"127.0.0.1:{port}"
+        if cand not in _connected_serials():
+            try:
+                subprocess.run([ADB, "connect", cand], capture_output=True,
+                               text=True, timeout=15)
+            except Exception:
+                pass
+        return cand
+    for s in _connected_serials():
+        if s.startswith("127.0.0.1:") or s.startswith("emulator-"):
+            return s
+    return DEVICE
 
 
 def ensure_device():
@@ -200,6 +291,8 @@ def main():
 
     # 1. 设备
     say("\n[1/5] 检查设备")
+    resolve_device()
+    say(f"  设备序列号 {DEVICE}（端口由 MuMuManager 实测得出）")
     if not ensure_device():
         return 1
 

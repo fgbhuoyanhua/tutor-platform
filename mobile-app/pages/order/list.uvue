@@ -1,5 +1,8 @@
 <template>
-  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
+  <!-- 高度 900px（不是 1000px）：让 scroll-view 底部停在 ~y=1770 之上，
+       避开底部 tab 栏（y≈1770-1920），否则滑到底时最后一张卡片的按钮被切一半。
+       实测 dump：1000px → ScrollView y=133-1770，正好与 tab 栏顶部重合。 -->
+  <scroll-view class="page" scroll-y="true" style="height: 900px;">
     <view v-if="isTutor" class="income-entry" @click="goIncome">
       <text class="income-entry-text">收入统计</text>
       <text class="income-entry-arrow">›</text>
