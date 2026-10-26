@@ -65,9 +65,9 @@ export default {
 
 <style>
 .page {
-  flex: 1;
-  background: #f5f7fa;
-  padding: 20rpx;
+  /* 不要用 flex 1 —— UTS/UVUE 不支持，会让 scroll-view 高度异常导致无法滚动 */
+background: #f5f7fa;
+  padding-top: 20rpx; padding-right: 20rpx; padding-left: 20rpx; padding-bottom: 120rpx;
 }
 .card {
   background: #ffffff;

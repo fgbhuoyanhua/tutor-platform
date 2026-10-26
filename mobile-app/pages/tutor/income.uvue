@@ -1,5 +1,8 @@
 <template>
   <scroll-view class="page" scroll-y="true" style="height: 1000px;">
+    <!-- 2026-10-26：padding 不能加在 scroll-view 本身（会导致无法滚动），
+         改由内层 view 承担内边距 -->
+    <view class="page-inner">
     <!-- 统计卡片 2x2 -->
     <view class="stat-grid">
       <view class="stat-card">
@@ -63,6 +66,7 @@
           <text class="bar-lbl">{{ s['subjectName'] as string }}</text>
         </view>
       </view>
+    </view>
     </view>
   </scroll-view>
 </template>
@@ -136,6 +140,9 @@ export default {
 <style>
 .page {
   background: #f5f7fa;
+  padding-bottom: 120rpx;
+}
+.page-inner {
   padding: 20rpx;
 }
 .stat-grid {

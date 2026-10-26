@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view class="card user-card">
       <view v-if="hasAvatar" class="avatar" :src="user!['avatar']" mode="aspectFill" />
@@ -116,11 +116,12 @@ export default {
 
 <style>
 .page {
+  /* 2026-10-26：不能给 scroll-view 的根类加 display:flex / flex-direction，
+     UVUE 会把它当 flex 容器处理，导致 scrollable=false、页面无法滚动。
+     对照：订单列表页 .page 只有 background，滚动正常。 */
   background: #f5f7fa;
-  padding: 20rpx 0 120rpx 0;
+  padding-top: 20rpx; padding-right: 0; padding-left: 0; padding-bottom: 300rpx;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
 }
 .card {
   background: #ffffff;

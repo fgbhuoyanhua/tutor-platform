@@ -99,6 +99,7 @@ export default {
 .page {
   height: 700px;
   background: #f5f7fa;
+  padding-bottom: 120rpx;
 }
 .chat-list {
   height:520px;

@@ -58,9 +58,9 @@ export default {
 
 <style>
 .page {
-  flex: 1;
-  background: #f5f7fa;
-  padding: 80rpx 40rpx;
+  /* 不要用 flex 1 —— UTS/UVUE 不支持，会让 scroll-view 高度异常导致无法滚动 */
+background: #f5f7fa;
+  padding-top: 80rpx; padding-right: 40rpx; padding-left: 40rpx; padding-bottom: 120rpx;
 }
 .brand {
   margin-bottom: 60rpx;

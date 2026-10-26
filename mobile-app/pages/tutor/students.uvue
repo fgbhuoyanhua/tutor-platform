@@ -60,7 +60,7 @@ export default {
 <style>
 .page {
   background: #f5f7fa;
-  padding: 20rpx;
+  padding-top: 20rpx; padding-right: 20rpx; padding-left: 20rpx; padding-bottom: 120rpx;
 }
 .title {
   font-size: 32rpx;

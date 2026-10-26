@@ -263,8 +263,10 @@ export default {
 
 <style>
 .page {
-  flex: 1;
+  /* 不要用 flex 1 —— UTS/UVUE 不支持，会让 scroll-view 高度异常导致页面无法滚动
+     （2026-10-26 实测：老师工作台内容被截断且滑不动）。高度见模板 style="height:1000px" */
   background: #f5f7fa;
+  padding-bottom: 300rpx;
 }
 .workbench {
   padding: 20rpx;

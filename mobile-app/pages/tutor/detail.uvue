@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <text v-if="loading" class="empty">加载中...</text>
 
@@ -59,7 +59,8 @@
 <script lang="uts">
 import { getTutor } from '../../api/tutor'
 import { tutorEvaluations } from '../../api/evaluation'
-import { addFavorite, removeFavorite } from '../../api/favorite'
+import { addFavorite, removeFavorite, listFavorites } from '../../api/favorite'
+import { getToken } from '../../utils/storage'
 
 export default {
   data() {
@@ -76,6 +77,13 @@ export default {
     this.tutorId = parseInt(id != null ? id.toString() : '0')
     this.load()
   },
+  onShow() {
+    // 从收藏页/老师列表返回时，重新同步收藏状态，
+    // 避免在别处取消收藏后本页仍显示「已收藏」
+    if (this.tutorId > 0) {
+      this.syncFavState()
+    }
+  },
   methods: {
     async load() {
       this.loading = true
@@ -85,10 +93,39 @@ export default {
         const uid = t['userId'] as number
         const evRes = await tutorEvaluations(uid, 1, 20)
         this.evaluations = evRes['records'] as UTSJSONObject[]
+        // 关键修复：加载时同步收藏状态（原先 isFav 硬编码 false，
+        // 导致已收藏的老师重新进入页面显示「☆ 收藏」）
+        await this.syncFavState()
       } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' })
       } finally {
         this.loading = false
+      }
+    },
+    async syncFavState() {
+      try {
+        if (getToken() == '') {
+          this.isFav = false
+          return
+        }
+        const res = await listFavorites()
+        const arr = res['list'] as UTSJSONObject[]
+        if (arr == null) {
+          this.isFav = false
+          return
+        }
+        let found = false
+        for (let i = 0; i < arr.length; i++) {
+          const fid = arr[i]['id'] as number
+          if (fid == this.tutorId) {
+            found = true
+            break
+          }
+        }
+        this.isFav = found
+      } catch (e) {
+        // 未登录或接口异常时不阻塞页面，保持默认未收藏
+        this.isFav = false
       }
     },
     async toggleFav() {
@@ -124,8 +161,9 @@ export default {
 
 <style>
 .page {
-  flex: 1;
-  background: #f5f7fa;
+  /* 不要用 flex 1 —— UTS/UVUE 不支持，会让 scroll-view 高度异常导致无法滚动 */
+background: #f5f7fa;
+  padding-bottom: 120rpx;
 }
 .card {
   background: #ffffff;

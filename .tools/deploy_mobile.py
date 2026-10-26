@@ -144,18 +144,19 @@ def ensure_hbx():
 
 def deploy():
     """调用 HBuilderX CLI 编译部署。输出必须重定向到文件——接管道会被杀"""
-    if LOG.exists():
-        LOG.unlink()
-    err = Path(str(LOG) + ".err")
+    # 用唯一文件名，避免上次进程还占着旧日志（WinError 32）
+    stamp = datetime.now().strftime("%H%M%S")
+    log = Path(str(LOG).replace(".log", f"_{stamp}.log"))
+    err = Path(str(log) + ".err")
 
     say(f"  开始编译（17 个页面约 35 秒）...")
     t0 = time.time()
-    # 关键：Start-Process 等价操作，输出重定向到文件，不接管道
+    # 关键：输出重定向到文件，不接管道
     p = subprocess.Popen(
         [HBX_CLI, "launch", "app-android", "--project", MOBILE_PRJ,
          "--deviceId", DEVICE],
         cwd=str(PROJECT),
-        stdout=open(LOG, "w", encoding="utf-8", errors="ignore"),
+        stdout=open(log, "w", encoding="utf-8", errors="ignore"),
         stderr=open(err, "w", encoding="utf-8", errors="ignore"),
     )
 
@@ -163,7 +164,7 @@ def deploy():
     ok = False
     for _ in range(60):
         time.sleep(3)
-        txt = LOG.read_text(encoding="utf-8", errors="ignore") if LOG.exists() else ""
+        txt = log.read_text(encoding="utf-8", errors="ignore") if log.exists() else ""
         if "应用【" in txt and "已启动" in txt:
             ok = True
             break
@@ -174,7 +175,7 @@ def deploy():
             break
 
     elapsed = int(time.time() - t0)
-    txt = LOG.read_text(encoding="utf-8", errors="ignore") if LOG.exists() else ""
+    txt = log.read_text(encoding="utf-8", errors="ignore") if log.exists() else ""
 
     if not ok:
         say(f"  ✗ 编译未确认成功（{elapsed}s）。日志尾部：")

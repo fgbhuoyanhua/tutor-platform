@@ -102,6 +102,7 @@ export default {
 <style>
 .page {
   background: #f5f7fa;
+  padding-bottom: 120rpx;
 }
 .brand {
   background-color: #0f172a;
