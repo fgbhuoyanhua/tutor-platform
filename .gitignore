@@ -45,3 +45,6 @@ tmp*.png
 
 # 任务报告不提交
 docs/
+
+# Agent 技能目录（junction 到工作区技能库，不提交）
+.dsh/

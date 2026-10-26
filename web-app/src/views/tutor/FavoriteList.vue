@@ -128,7 +128,7 @@ const list = ref<TutorVO[]>([]);
 const orderVisible = ref(false);
 const submitting = ref(false);
 const currentTutor = ref<TutorVO | null>(null);
-const orderForm = reactive({ appointDate: '', timeSlot: '' });
+const orderForm = reactive({ tutorId: 0, subjectId: 0, appointDate: '', timeSlot: '' });
 
 const detailVisible = ref(false);
 const detailTutor = ref<TutorVO | null>(null);
@@ -163,6 +163,8 @@ function openDetail(t: TutorVO) {
 
 function openOrder(t: TutorVO) {
   currentTutor.value = t;
+  orderForm.tutorId = t.id;
+  orderForm.subjectId = t.subjectId;
   orderForm.appointDate = '';
   orderForm.timeSlot = '';
   orderVisible.value = true;
@@ -185,11 +187,7 @@ async function submitOrder() {
   if (!currentTutor.value) return;
   submitting.value = true;
   try {
-    await createOrder({
-      tutorId: currentTutor.value.id,
-      appointDate: orderForm.appointDate,
-      timeSlot: orderForm.timeSlot,
-    });
+    await createOrder({ ...orderForm });
     ElMessage.success('预约已提交，等待老师确认');
     orderVisible.value = false;
   } catch (e) {
