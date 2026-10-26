@@ -112,6 +112,32 @@ CREATE TABLE IF NOT EXISTS `admin_log` (
 ) ENGINE=InnoDB COMMENT='管理员操作日志表';
 
 -- ------------------------------------------------------------
+-- DEFECT-4：evaluation 表缺 reply 字段
+--   EvaluationEntity 有 reply（老师回复），但表结构没有
+--   症状：GET /api/evaluations/tutor/{id} 返回 500
+--         java.sql.SQLSyntaxErrorException: Unknown column 'reply' in 'field list'
+--   影响：老师端「我的评价」页完全打不开；学生评价后老师无法回复
+-- ------------------------------------------------------------
+DROP PROCEDURE IF EXISTS sp_migrate_eval_reply;
+DELIMITER $$
+CREATE PROCEDURE sp_migrate_eval_reply()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = DATABASE()
+                     AND table_name = 'evaluation'
+                     AND column_name = 'reply') THEN
+        ALTER TABLE `evaluation`
+            ADD COLUMN `reply` VARCHAR(500) DEFAULT NULL
+            COMMENT '老师回复（对应 EvaluationEntity.reply）'
+            AFTER `content`;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL sp_migrate_eval_reply();
+DROP PROCEDURE IF EXISTS sp_migrate_eval_reply;
+
+-- ------------------------------------------------------------
 -- 校验
 -- ------------------------------------------------------------
 SELECT 'appointment 索引' AS check_item, GROUP_CONCAT(DISTINCT index_name) AS result
@@ -123,3 +149,7 @@ SELECT '缺失表检查' AS check_item,
 FROM information_schema.tables
 WHERE table_schema = DATABASE()
   AND table_name IN ('favorite', 'reschedule', 'study_report', 'admin_log');
+
+SELECT 'evaluation 字段' AS check_item, GROUP_CONCAT(column_name ORDER BY ordinal_position) AS columns
+FROM information_schema.columns
+WHERE table_schema = DATABASE() AND table_name = 'evaluation';

@@ -88,6 +88,7 @@ CREATE TABLE `evaluation` (
   `tutor_id`    BIGINT       NOT NULL COMMENT '被评老师 user.id',
   `score`       TINYINT      NOT NULL COMMENT '评分1-5',
   `content`     VARCHAR(500) DEFAULT NULL COMMENT '评价内容',
+  `reply`       VARCHAR(500) DEFAULT NULL COMMENT '老师回复（对应 EvaluationEntity.reply）',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '评价时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_student` (`order_id`, `student_id`)
