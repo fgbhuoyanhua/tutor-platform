@@ -1,5 +1,5 @@
-<template>
-  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
+﻿<template>
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
     <text class="title">我的学生（{{ list.length }} 人）</text>
     <text v-if="!loading && list.length == 0" class="empty">还没有上过课的学生</text>
     <view v-for="(s: UTSJSONObject, i: number) in list" :key="i" class="card">

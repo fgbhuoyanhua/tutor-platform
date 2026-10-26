@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
     <view class="card">
       <view class="row">
         <text class="label">原时间</text>

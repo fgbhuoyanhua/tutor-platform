@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 800px;">
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 800px;">
     <view class="section">
       <view class="section-head">
         <text class="section-title">通知</text>

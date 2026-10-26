@@ -1,5 +1,5 @@
 ﻿<template>
-  <scroll-view class="page" scroll-y="true" style="height: 1400px;">
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1400px;">
     <view class="brand">
       <view class="brand-row">
         <text class="brand-name">青蓝</text>

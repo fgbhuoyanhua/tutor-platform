@@ -1,5 +1,6 @@
 <template>
-  <scroll-view class="page" scroll-y="true" style="height: 1000px;">
+  <!-- 实验1：外层 flex 容器撑满 + scroll-view flex:1 + height:1px（社区方案） -->
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
     <!-- 2026-10-26：padding 不能加在 scroll-view 本身（会导致无法滚动），
          改由内层 view 承担内边距 -->
     <view class="page-inner">
@@ -140,9 +141,8 @@ export default {
 <style>
 .page {
   background: #f5f7fa;
-  /* ⚠️ 不要在这里再加 padding-bottom：
-     实测「padding 加在 scroll-view 上会导致无法滚动」（交接单第十一节第 7 条）。
-     底部间距由页面内容末尾的 card 的 margin-bottom 承担。 */
+  /* ⚠️ 不要在这里加 padding-bottom：scroll-view 上的 padding 不参与内容高度，
+     底部留白放内层 .page-inner（见下）。 */
 }
 .page-inner {
   padding: 20rpx;
