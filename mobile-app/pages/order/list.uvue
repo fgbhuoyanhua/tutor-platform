@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="height: 1000px;">
     <view v-if="isTutor" class="income-entry" @click="goIncome">
       <text class="income-entry-text">收入统计</text>
@@ -90,6 +90,10 @@
     </view>
 
     <text v-if="!loading && list.length == 0" class="empty">暂无订单</text>
+    <!-- 底部占位：scroll-view 的 padding 不参与内容高度计算，
+         空 view 在 UVUE 里也不产生高度，用 text 撑出空间，
+         否则最后一张卡片会被 bottom tab 栏遮挡 -->
+    <text class="bottom-spacer"> </text>
   </scroll-view>
 </template>
 
@@ -249,9 +253,15 @@ export default {
 
 <style>
 .page {
-  /* 不要用 flex 1 —— UTS/UVUE 不支持，会让 scroll-view 高度异常导致无法滚动 */
+  /* 不要用 flex 1 —— UTS/UVUE 不支持，会让 scroll-view 高度异常导致无法滚动
+     注意：padding 加在 scroll-view 上不参与内容高度计算，底部留白改用 .bottom-spacer */
 background: #f5f7fa;
-  padding-bottom: 300rpx;
+}
+.bottom-spacer {
+  /* 注意：display 只支持 flex|none，不能写 block（会编译报错） */
+  height: 300rpx;
+  font-size: 1px;
+  line-height: 300rpx;
 }
 .income-entry {
   display: flex;
