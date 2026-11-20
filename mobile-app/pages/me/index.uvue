@@ -203,7 +203,10 @@ export default {
   flex: 1;
   background: #f5f7fa;
   border-radius: 8rpx;
-  padding: 12rpx 16rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  padding-left: 16rpx;
+  padding-right: 16rpx;
   font-size: 28rpx;
 }
 .btn-primary {

@@ -143,9 +143,11 @@ export default {
   flex: 1;
   background: #f0f2f5;
   border-radius: 32rpx;
-  padding: 16rpx 24rpx;
-  font-size: 26rpx;
   height: 64rpx;
+  line-height: 64rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+  font-size: 26rpx;
 }
 .send-btn {
   background: #4f6ef7;

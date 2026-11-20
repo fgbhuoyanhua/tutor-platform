@@ -1,7 +1,11 @@
+// 与 Web 端 frontend-common/src/constants TIME_SLOTS 保持一致（7 个时段）
+// 2026-11-20 同步：移动端原为 5 个时段，缺 09:00-11:00 与 15:00-17:00
 export const TIME_SLOTS: string[] = [
   '08:00-10:00',
+  '09:00-11:00',
   '10:00-12:00',
   '14:00-16:00',
+  '15:00-17:00',
   '16:00-18:00',
   '19:00-21:00'
 ]
@@ -11,10 +15,14 @@ export function formatPrice(p: number): string {
 }
 
 export function orderStatusLabel(status: number): string {
-  if (status == 0) return '待接单'
-  if (status == 1) return '进行中'
-  if (status == 2) return '已完成'
-  if (status == 3) return '待评价'
+  // 与后端 OrderDomain / appointment.status 严格一致：
+  // 0 待确认 → 1 已预约 → 2 授课中 → 3 已完成；4 已取消、5 已拒绝
+  if (status == 0) return '待确认'
+  if (status == 1) return '已预约'
+  if (status == 2) return '授课中'
+  if (status == 3) return '已完成'
+  if (status == 4) return '已取消'
+  if (status == 5) return '已拒绝'
   return '未知'
 }
 

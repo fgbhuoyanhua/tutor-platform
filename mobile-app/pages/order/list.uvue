@@ -393,7 +393,10 @@ background: #f5f7fa;
 .eval-input {
   background: #f5f7fa;
   border-radius: 8rpx;
-  padding: 16rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  padding-left: 16rpx;
+  padding-right: 16rpx;
   font-size: 26rpx;
   margin-bottom: 16rpx;
 }

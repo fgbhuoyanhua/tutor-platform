@@ -1,32 +1,19 @@
 <script>
+import { login } from './api/auth'
 import { setToken, setUser, getToken } from './utils/storage'
 
 export default {
   onLaunch() {
     console.log('家教预约平台移动端启动')
-    // 开发期自动登录 student01
+    // 开发期自动登录 student01：统一走 api/auth 封装，地址只在 utils/request.uts 里改一处
     const existing = getToken()
     if (existing == '') {
-      uni.request({
-        url: 'http://10.84.64.128:8080/api/auth/login',
-        method: 'POST',
-        header: { 'Content-Type': 'application/json' },
-        data: { username: 'student01', password: '123456' },
-        success: (res) => {
-          const raw = res.data
-          if (raw != null) {
-            const body = raw as UTSJSONObject
-            if ((body['code'] as number) == 200) {
-              const data = body['data'] as UTSJSONObject
-              setToken(data['token'] as string)
-              setUser(data['user'] as UTSJSONObject)
-              console.log('自动登录成功')
-            }
-          }
-        },
-        fail: (err) => {
-          console.log('自动登录失败')
-        }
+      login('student01', '123456').then((res) => {
+        setToken(res['token'] as string)
+        setUser(res)
+        console.log('自动登录成功')
+      }).catch((e) => {
+        console.log('自动登录失败：请检查 utils/request.uts 里的 BASE_URL 是否为本机当前 IP')
       })
     }
   }
