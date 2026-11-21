@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.BizException;
+import com.tutor.platform.common.CacheEvictor;
 import com.tutor.platform.domain.OrderDomain;
 import com.tutor.platform.dto.EvaluationCreateDTO;
 import com.tutor.platform.entity.AppointmentEntity;
@@ -36,6 +37,7 @@ public class EvaluationServiceImpl implements EvaluationService {
     private final TutorMapper tutorMapper;
     private final UserMapper userMapper;
     private final MessageService messageService;
+    private final CacheEvictor cacheEvictor;
 
     @Override
     @Transactional
@@ -76,6 +78,8 @@ public class EvaluationServiceImpl implements EvaluationService {
                 "学生给您的授课打了" + dto.getScore() + "分" +
                         (dto.getContent() == null || dto.getContent().isBlank()
                                 ? "" : "，评价：" + dto.getContent()));
+        // 评分变化会影响老师列表的排序与评价数展示，主动失效
+        cacheEvictor.evictTutorList();
     }
 
     @Override

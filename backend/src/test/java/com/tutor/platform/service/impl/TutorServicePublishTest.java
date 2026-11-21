@@ -1,6 +1,7 @@
 package com.tutor.platform.service.impl;
 
 import com.tutor.platform.common.BizException;
+import com.tutor.platform.common.CacheEvictor;
 import com.tutor.platform.entity.TutorEntity;
 import com.tutor.platform.mapper.AppointmentMapper;
 import com.tutor.platform.mapper.EvaluationMapper;
@@ -43,7 +44,8 @@ class TutorServicePublishTest {
                 mock(AppointmentMapper.class),
                 mock(MessageService.class),
                 mock(StringRedisTemplate.class),
-                new ObjectMapper());
+                new ObjectMapper(),
+                mock(CacheEvictor.class));
     }
 
     private TutorEntity valid() {

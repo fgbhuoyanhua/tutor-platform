@@ -1,6 +1,7 @@
 package com.tutor.platform.service.impl;
 
 import com.tutor.platform.common.BizException;
+import com.tutor.platform.common.CacheEvictor;
 import com.tutor.platform.dto.AppointmentCreateDTO;
 import com.tutor.platform.entity.AppointmentEntity;
 import com.tutor.platform.entity.TutorEntity;
@@ -57,7 +58,8 @@ class OrderServiceCreateTest {
         orderService = new OrderServiceImpl(
                 appointmentMapper, tutorMapper, userMapper, subjectMapper,
                 messageService, rescheduleMapper,
-                mock(StringRedisTemplate.class), new ObjectMapper());
+                mock(StringRedisTemplate.class), new ObjectMapper(),
+                mock(CacheEvictor.class));
     }
 
     private TutorEntity tutor(long userId, int status) {

@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.BizException;
+import com.tutor.platform.common.CacheEvictor;
 import com.tutor.platform.entity.SubjectEntity;
 import com.tutor.platform.entity.TutorEntity;
 import com.tutor.platform.entity.UserEntity;
@@ -51,6 +52,7 @@ public class TutorServiceImpl implements TutorService {
     private final MessageService messageService;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final CacheEvictor cacheEvictor;
 
     @Override
     public Long publish(Long userId, TutorEntity tutor) {
@@ -61,6 +63,8 @@ public class TutorServiceImpl implements TutorService {
         tutor.setStatus(0); // 待审核
         tutor.setCreateTime(LocalDateTime.now());
         tutorMapper.insert(tutor);
+        // 新家教信息不影响已上架列表（状态为待审核），但提交后一旦被审核上架要立即可见
+        cacheEvictor.evictTutorList();
         return tutor.getId();
     }
 
@@ -75,6 +79,8 @@ public class TutorServiceImpl implements TutorService {
         // 编辑后重新进入待审核
         tutor.setStatus(0);
         tutorMapper.updateById(tutor);
+        // 资料变更（资费、科目、简介）会影响列表展示与筛选结果
+        cacheEvictor.evictTutorList();
     }
 
     /** 家教信息参数校验：资费、简介、学段 */
@@ -154,7 +160,7 @@ public class TutorServiceImpl implements TutorService {
             payload.setTotal(result.getTotal());
             payload.setRecords(result.getRecords());
             redisTemplate.opsForValue().set(cacheKey,
-                    objectMapper.writeValueAsString(payload), 180, TimeUnit.SECONDS);
+                    objectMapper.writeValueAsString(payload), CacheEvictor.jitter(180), TimeUnit.SECONDS);
         } catch (Exception e) {
             log.debug("家教列表缓存写入失败，已忽略: {}", e.getMessage());
         }
@@ -206,6 +212,8 @@ public class TutorServiceImpl implements TutorService {
         }
         t.setStatus(pass ? 1 : 3);
         tutorMapper.updateById(t);
+        // 审核结果直接决定是否出现在列表（仅已上架可查），必须立即失效
+        cacheEvictor.evictTutorList();
         // 审核驳回时站内消息通知老师（系统消息，fromId=0）
         if (!pass) {
             messageService.send(0L, t.getUserId(), 3,

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tutor.platform.common.BizException;
+import com.tutor.platform.common.CacheEvictor;
 import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.UserContext;
 import com.tutor.platform.domain.OrderDomain;
@@ -58,6 +59,7 @@ public class OrderServiceImpl implements OrderService {
     private final RescheduleMapper rescheduleMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final CacheEvictor cacheEvictor;
 
     @Override
     @Transactional
@@ -109,6 +111,8 @@ public class OrderServiceImpl implements OrderService {
         messageService.send(studentId, tutor.getUserId(), 1,
                 "您有新的预约订单，订单号：" + order.getOrderNo()
                         + "，预约时间：" + dto.getAppointDate() + " " + dto.getTimeSlot());
+        // 新订单会改变老师看板的待确认数量，主动失效而不等过期
+        cacheEvictor.evictDashboard(tutor.getUserId());
         return order.getId();
     }
 
@@ -190,6 +194,8 @@ public class OrderServiceImpl implements OrderService {
                             "学生已确认完成授课，订单号：" + orderNo + "，可查看评价");
             default -> { }
         }
+        // 状态变更会改变老师看板的收入、完成数与状态分布，主动失效而不等过期
+        cacheEvictor.evictDashboard(order.getTutorId());
     }
 
     @Override
@@ -315,7 +321,7 @@ public class OrderServiceImpl implements OrderService {
         // 写入缓存，过期时间5分钟；写失败不影响返回结果
         try {
             redisTemplate.opsForValue().set(cacheKey,
-                    objectMapper.writeValueAsString(result), 300, TimeUnit.SECONDS);
+                    objectMapper.writeValueAsString(result), CacheEvictor.jitter(300), TimeUnit.SECONDS);
         } catch (Exception e) {
             log.debug("看板缓存写入失败，已忽略: {}", e.getMessage());
         }
@@ -434,6 +440,8 @@ public class OrderServiceImpl implements OrderService {
         rescheduleMapper.updateById(r);
         messageService.send(tutorId, order.getStudentId(), 2,
                 "您的调课申请已同意，新课程时间：" + r.getNewDate() + " " + r.getNewSlot());
+        // 调课生效改变了订单日期与时段，看板的趋势统计需要重算
+        cacheEvictor.evictDashboard(tutorId);
     }
 
     @Override
