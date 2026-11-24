@@ -139,7 +139,7 @@ def draw_flow():
     step(Y8, "⑥ 下发站内消息给老师 · 清 dashboard 缓存")
     vline(Y8 + 46, Y9 - 71)
 
-    dia(Y9, "老师在有效期内处理？")
+    dia(Y9, "老师是否确认预约？")
     C.tag(d, CX + 66, (Y9 + 71 + Y10 - 46) / 2, "确认")
     vline(Y9 + 71, Y10 - 46)
 
@@ -179,17 +179,17 @@ def draw_flow():
     # 右侧分支：拒绝
     d.rounded_rectangle([1090, Y9 - 46, 1490, Y9 + 46], radius=12,
                         fill=(255, 245, 245), outline=(170, 70, 70), width=3)
-    for k, ln in enumerate(["拒绝 → status=5，超时 → status=4", "active_flag 置空，时段即释放"]):
+    for k, ln in enumerate(["拒绝 → status=5，active_flag 置空", "时段立即释放，可再次预约"]):
         tw = d.textlength(ln, font=f)
         d.text((1290 - tw / 2, Y9 - 26 + k * 30), ln, font=f, fill=TEXT)
     C.arrow(d, (CX + 190, Y9), (1090, Y9), LINE, 3, 13)
-    C.tag(d, CX + 268, Y9 - 22, "拒绝 / 超时", 18)
+    C.tag(d, CX + 268, Y9 - 22, "拒绝", 18)
 
     # 左侧：学生取消
     LX = 250
     d.rounded_rectangle([LX - 190, Y10 - 62, LX + 130, Y10 + 62], radius=12,
                         fill=(255, 250, 240), outline=(150, 110, 40), width=3)
-    for k, ln in enumerate(["学生取消预约：0→4", "条件更新 + 时段释放"]):
+    for k, ln in enumerate(["待确认时学生取消：0→4", "条件更新 + 时段释放"]):
         tw = d.textlength(ln, font=f)
         d.text((LX - 30 - tw / 2, Y10 - 42 + k * 30), ln, font=f, fill=TEXT)
     C.elbow(d, [(CX - 260, Y10), (LX + 130, Y10)], LINE, 3)

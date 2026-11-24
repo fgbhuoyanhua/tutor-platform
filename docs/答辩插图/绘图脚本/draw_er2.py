@@ -98,9 +98,12 @@ C.tag(d, 300, 900, "被收藏")
 # TUTOR -> SUBJECT（上）
 C.elbow(d, [(700, 900), (700, 700), (1000, 700), (1000, 650)])
 C.tag(d, 850, 680, "教授科目")
-# TUTOR -> APPOINTMENT（右，平进）
-C.elbow(d, [(780, 1150), (1000, 1150)])
-C.tag(d, 900, 1124, "老师接单")
+# USER -> APPOINTMENT（老师接单：appointment.tutor_id 存的是教师账号 user.id）
+C.elbow(d, [(780, 800), (1000, 800)])
+C.tag(d, 900, 826, "老师接单")
+# SUBJECT -> APPOINTMENT（订单所属科目）
+C.elbow(d, [(1060, 650), (1060, 740)])
+C.tag(d, 1078, 688, "授课科目")
 # USER -> APPOINTMENT（右，平进）
 C.elbow(d, [(780, 760), (1000, 760)])
 C.tag(d, 890, 734, "学生下单")
