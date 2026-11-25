@@ -1,0 +1,297 @@
+<template>
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
+    <view class="card">
+      <text class="section-title">资格认证</text>
+      <view class="status-row">
+        <text class="status-label">当前状态</text>
+        <text :class="'status-badge ' + statusClass">{{ statusText }}</text>
+      </view>
+
+      <!-- 已认证：只读 -->
+      <view v-if="certStatus == 2">
+        <view class="kv"><text class="k">院校</text><text class="v">{{ schoolText }}</text></view>
+        <view class="kv"><text class="k">专业</text><text class="v">{{ majorText }}</text></view>
+        <view class="kv"><text class="k">年级</text><text class="v">{{ gradeText }}</text></view>
+        <text class="tip">认证信息已展示在老师列表与详情页</text>
+      </view>
+
+      <!-- 待审 -->
+      <view v-else-if="certStatus == 1">
+        <text class="tip">材料已提交，等待管理员审核，结果会通过站内消息通知</text>
+      </view>
+
+      <!-- 未提交或驳回：表单 -->
+      <view v-else>
+        <text v-if="certStatus == 3" class="error-text">上次未通过：{{ reviewNote }}</text>
+
+        <view class="form-row">
+          <text class="label">就读院校</text>
+          <input class="input" v-model="school" placeholder="如：苏州大学" />
+        </view>
+        <view class="form-row">
+          <text class="label">专业</text>
+          <input class="input" v-model="major" placeholder="如：计算机科学与技术" />
+        </view>
+
+        <text class="sub-label">年级</text>
+        <view class="chips">
+          <text v-for="(g, i) in grades" :key="i"
+                :class="gradeLevel == g ? 'chip chip-on' : 'chip'"
+                @click="pickGrade(g)">{{ g }}</text>
+        </view>
+
+        <text class="sub-label">证明类型</text>
+        <view class="chips">
+          <text v-for="(l, i) in certLabels" :key="i"
+                :class="certType == (i + 1) ? 'chip chip-on' : 'chip'"
+                @click="pickType(i + 1)">{{ l }}</text>
+        </view>
+
+        <view v-if="certType == 2" class="form-row">
+          <text class="label">报告编号</text>
+          <input class="input" v-model="certNo" placeholder="学信网在线验证报告编号" />
+        </view>
+
+        <view class="form-row">
+          <text class="label">补充说明</text>
+          <input class="input" v-model="note" placeholder="可不填" />
+        </view>
+
+        <text class="tip">证明材料图片请在网页端上传；此处提交文字信息后，管理员会联系你补充材料。</text>
+
+        <button class="btn-primary" :disabled="submitting" @click="submitCert">提交认证</button>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { get, post } from '../../utils/request'
+
+export default {
+  data() {
+    return {
+      school: '',
+      major: '',
+      gradeLevel: '',
+      certType: 1,
+      certNo: '',
+      note: '',
+      certStatus: 0,
+      reviewNote: '',
+      schoolText: '',
+      majorText: '',
+      gradeText: '',
+      submitting: false,
+      grades: ['大一', '大二', '大三', '大四', '研一', '研二', '研三'] as string[],
+      certLabels: ['学生证', '学信网报告', '校园卡', '校园邮箱', '其他'] as string[]
+    }
+  },
+  computed: {
+    statusText(): string {
+      if (this.certStatus == 1) return '待审核'
+      if (this.certStatus == 2) return '已认证'
+      if (this.certStatus == 3) return '已驳回'
+      return '未认证'
+    },
+    statusClass(): string {
+      if (this.certStatus == 1) return 'badge-wait'
+      if (this.certStatus == 2) return 'badge-ok'
+      if (this.certStatus == 3) return 'badge-bad'
+      return 'badge-none'
+    }
+  },
+  onShow() {
+    this.loadCert()
+  },
+  methods: {
+    async loadCert() {
+      try {
+        const res = await get('/tutor-cert/my', null)
+        const cs = res['certStatus']
+        this.certStatus = cs == null ? 0 : (cs as number)
+        const rn = res['reviewNote']
+        this.reviewNote = rn == null ? '' : (rn as string)
+        const s = res['school']
+        this.schoolText = s == null ? '' : (s as string)
+        const m = res['major']
+        this.majorText = m == null ? '' : (m as string)
+        const g = res['gradeLevel']
+        this.gradeText = g == null ? '' : (g as string)
+        // 驳回时回填上次填写的内容，方便修改重提
+        if (this.certStatus == 3) {
+          this.school = this.schoolText
+          this.major = this.majorText
+          this.gradeLevel = this.gradeText
+          const ct = res['certType']
+          if (ct != null) this.certType = ct as number
+          const cn = res['certNo']
+          if (cn != null) this.certNo = cn as string
+        }
+      } catch (e) {
+        // 未登录或无家教信息时静默
+      }
+    },
+    pickGrade(g: string) {
+      this.gradeLevel = g
+    },
+    pickType(t: number) {
+      this.certType = t
+    },
+    async submitCert() {
+      if (this.school.trim() == '' || this.major.trim() == '' || this.gradeLevel == '') {
+        uni.showToast({ title: '请填写院校、专业和年级', icon: 'none' })
+        return
+      }
+      if (this.certType == 2 && this.certNo.trim() == '') {
+        uni.showToast({ title: '学信网报告需填报告编号', icon: 'none' })
+        return
+      }
+      this.submitting = true
+      try {
+        const m = new Map<string, any>()
+        m.set('school', this.school.trim())
+        m.set('major', this.major.trim())
+        m.set('gradeLevel', this.gradeLevel)
+        m.set('certType', this.certType)
+        if (this.certNo.trim() != '') m.set('certNo', this.certNo.trim())
+        if (this.note.trim() != '') m.set('note', this.note.trim())
+        await post('/tutor-cert', m)
+        uni.showToast({ title: '已提交，等待审核', icon: 'success' })
+        this.loadCert()
+      } catch (e) {
+        const err = e as Error
+        uni.showToast({ title: err.message, icon: 'none' })
+      } finally {
+        this.submitting = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  background: #f5f7fa;
+  padding-top: 20rpx; padding-right: 20rpx; padding-left: 20rpx; padding-bottom: 120rpx;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  margin-bottom: 24rpx;
+}
+.status-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+.status-label {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-right: 16rpx;
+}
+.status-badge {
+  font-size: 24rpx;
+  padding-top: 6rpx; padding-bottom: 6rpx;
+  padding-left: 16rpx; padding-right: 16rpx;
+  border-radius: 10rpx;
+}
+.badge-none { background: #f3f4f6; color: #6b7280; }
+.badge-wait { background: #fff7e6; color: #b8860b; }
+.badge-ok { background: #ecfdf5; color: #059669; }
+.badge-bad { background: #fef2f2; color: #dc2626; }
+.kv {
+  display: flex;
+  flex-direction: row;
+  padding-top: 12rpx; padding-bottom: 12rpx;
+}
+.k {
+  width: 120rpx;
+  font-size: 26rpx;
+  color: #6b7280;
+}
+.v {
+  flex: 1;
+  font-size: 26rpx;
+  color: #1a1b1c;
+}
+.form-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 16rpx;
+}
+.label {
+  width: 150rpx;
+  font-size: 26rpx;
+  color: #606266;
+  flex-shrink: 0;
+}
+.input {
+  flex: 1;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+  font-size: 26rpx;
+}
+.sub-label {
+  font-size: 26rpx;
+  color: #606266;
+  margin-top: 24rpx;
+  margin-bottom: 12rpx;
+}
+.chips {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 24rpx;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 10rpx;
+  padding-top: 8rpx; padding-bottom: 8rpx;
+  padding-left: 18rpx; padding-right: 18rpx;
+  margin-right: 12rpx;
+  margin-bottom: 12rpx;
+}
+.chip-on {
+  background: #4f6ef7;
+  color: #ffffff;
+}
+.tip {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 16rpx;
+}
+.error-text {
+  font-size: 24rpx;
+  color: #dc2626;
+  background: #fef2f2;
+  border-radius: 10rpx;
+  padding: 16rpx;
+  margin-bottom: 8rpx;
+}
+.btn-primary {
+  margin-top: 24rpx;
+  background: #4f6ef7;
+  color: #fff;
+  border-radius: 12rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 30rpx;
+  flex-shrink: 0;
+}
+</style>

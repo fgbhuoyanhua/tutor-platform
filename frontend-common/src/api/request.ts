@@ -23,6 +23,10 @@ request.interceptors.request.use((config) => {
 
 request.interceptors.response.use(
   (response) => {
+    // 二进制响应（证明材料预览）不走统一 code 校验
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
     const body = response.data as ApiResponse<unknown>;
     if (body.code === 401) {
       clearToken();
@@ -80,4 +84,19 @@ export async function put<T>(
 export async function del<T>(url: string, params?: Record<string, unknown>): Promise<T> {
   const res = await request.delete<ApiResponse<T>>(url, { params });
   return res.data.data;
+}
+
+/** 上传表单（multipart），用于证明材料文件上传；Content-Type 由浏览器自动带上 boundary */
+export async function postForm<T>(url: string, form: FormData): Promise<T> {
+  const res = await request.post<ApiResponse<T>>(url, form, { timeout: 30000 });
+  return res.data.data;
+}
+
+/** 取二进制内容（证明材料预览），返回 Blob。
+ *  后端返回的 certUrl 形如 /api/tutor-cert/file/2/xxx.png，已带 /api 前缀，
+ *  这里去掉后再交给 baseURL 为 /api 的实例，避免出现 /api/api/... */
+export async function getBlob(url: string): Promise<Blob> {
+  const path = url.startsWith('/api') ? url.slice(4) : url;
+  const res = await request.get(path, { responseType: 'blob' });
+  return res.data as Blob;
 }

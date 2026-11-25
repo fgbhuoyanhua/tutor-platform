@@ -8,6 +8,7 @@
     { "path": "pages/tutor/calendar", "style": { "navigationBarTitleText": "授课日历" } },
     { "path": "pages/tutor/students", "style": { "navigationBarTitleText": "我的学生" } },
     { "path": "pages/tutor/evaluations", "style": { "navigationBarTitleText": "学生评价" } },
+    { "path": "pages/tutor/cert", "style": { "navigationBarTitleText": "资格认证" } },
     { "path": "pages/order/list", "style": { "navigationBarTitleText": "我的订单" } },
     { "path": "pages/student/calendar", "style": { "navigationBarTitleText": "我的课程表" } },
     { "path": "pages/order/create", "style": { "navigationBarTitleText": "预约老师" } },

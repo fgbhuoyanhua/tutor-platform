@@ -3,6 +3,7 @@ export * from './constants';
 export * from './api/request';
 export * from './api/auth';
 export * from './api/tutor';
+export * from './api/cert';
 export * from './api/order';
 export * from './api/admin';
 export * from './api/subject';

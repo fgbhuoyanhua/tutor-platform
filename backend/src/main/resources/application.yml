@@ -8,6 +8,11 @@ spring:
     name: tutor-platform
   profiles:
     active: dev
+  servlet:
+    multipart:
+      # 资格认证证明材料上限 5MB，请求体略大一点留余量
+      max-file-size: 5MB
+      max-request-size: 6MB
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
@@ -55,3 +60,8 @@ jwt:
   # 生产环境务必通过环境变量 JWT_SECRET 覆盖
   secret: ${JWT_SECRET:tutor-platform-dev-secret-key-please-change-in-prod-0123456789}
   expire-hours: 168
+
+app:
+  upload:
+    # 证明材料存储根目录，生产用 UPLOAD_DIR 覆盖
+    dir: ${UPLOAD_DIR:E:/毕业设计/project/uploads}

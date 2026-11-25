@@ -75,6 +75,15 @@ public class GlobalExceptionHandler {
         return ApiResponse.fail(400, "请求体格式错误，请检查 JSON 或日期格式");
     }
 
+    /** 上传文件超过 multipart 上限：给明确提示，而不是落到通用 500 */
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ApiResponse<Void> handleFileTooLarge(
+            org.springframework.web.multipart.MaxUploadSizeExceededException e,
+            HttpServletResponse response) {
+        applyStatus(response, 400);
+        return ApiResponse.fail(400, "上传文件不能超过 5MB");
+    }
+
     @ExceptionHandler(DuplicateKeyException.class)
     public ApiResponse<Void> handleDuplicateKey(DuplicateKeyException e, HttpServletResponse response) {
         log.warn("唯一键冲突：{}", e.getMessage());

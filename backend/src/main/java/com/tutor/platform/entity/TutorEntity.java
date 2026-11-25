@@ -35,5 +35,23 @@ public class TutorEntity {
     /** 0待审核 1已上架 2已下架 3未通过 */
     private Integer status;
 
+    /** 就读院校（认证通过后写入） */
+    private String school;
+
+    /** 专业 */
+    private String major;
+
+    /** 年级：大一/大二/大三/大四/研一/研二/研三 */
+    private String gradeLevel;
+
+    /** 认证状态：0未提交 1待审 2已认证 3驳回 */
+    private Integer certStatus;
+
+    /** 认证通过时间 */
+    private LocalDateTime certTime;
+
+    /** 校园邮箱（可选） */
+    private String eduEmail;
+
     private LocalDateTime createTime;
 }

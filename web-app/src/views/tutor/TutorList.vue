@@ -36,7 +36,11 @@
               <div class="tutor-name link" @click="openDetail(t)">{{ t.tutorName }}</div>
               <div class="tutor-subject">
                 <el-tag size="small" type="success">{{ t.subjectName }}</el-tag>
+                <el-tag v-if="t.certStatus === 2" size="small" type="warning" effect="plain">已认证</el-tag>
                 <span class="grade">擅长{{ t.grade }}</span>
+              </div>
+              <div v-if="t.certStatus === 2 && t.school" class="school">
+                {{ t.school }}<span v-if="t.major"> · {{ t.major }}</span>
               </div>
             </div>
           </div>
@@ -496,6 +500,11 @@ async function submitOrder() {
   align-items: center;
   gap: 8px;
   margin-top: 4px;
+}
+.school {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #b8860b;
 }
 .grade {
   color: var(--text-muted);

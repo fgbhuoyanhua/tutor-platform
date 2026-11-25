@@ -23,6 +23,10 @@
     </view>
 
     <view class="card menu-card">
+      <view v-if="isTutor" class="menu-item menu-item-gap" @click="goCert">
+        <text class="menu-text">资格认证</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <view class="menu-item" @click="goPassword">
         <text class="menu-text">修改密码</text>
         <text class="menu-arrow">›</text>
@@ -106,6 +110,9 @@ export default {
     goPassword() {
       uni.navigateTo({ url: '/pages/me/password' })
     },
+    goCert() {
+      uni.navigateTo({ url: '/pages/tutor/cert' })
+    },
     logout() {
       clearToken()
       uni.reLaunch({ url: '/pages/auth/login' })
@@ -167,6 +174,11 @@ export default {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  padding-top: 16rpx;
+  padding-bottom: 16rpx;
+}
+.menu-item-gap {
+  border-bottom: 1px solid #f3f4f6;
 }
 .menu-text {
   font-size: 30rpx;

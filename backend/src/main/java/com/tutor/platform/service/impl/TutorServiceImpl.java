@@ -273,6 +273,11 @@ public class TutorServiceImpl implements TutorService {
                 .finishedOrderCount(finCnt == null ? 0L : finCnt)
                 .introduce(t.getIntroduce())
                 .status(t.getStatus())
+                .school(t.getSchool())
+                .major(t.getMajor())
+                .gradeLevel(t.getGradeLevel())
+                .certStatus(t.getCertStatus() == null ? 0 : t.getCertStatus())
+                .certTime(t.getCertTime())
                 .createTime(t.getCreateTime())
                 .build();
     }

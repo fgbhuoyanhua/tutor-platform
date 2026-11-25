@@ -55,6 +55,51 @@ export interface TutorVO {
   evaluateCount?: number;
   /** 已完成订单数（授课经验） */
   finishedOrderCount?: number;
+  /** 就读院校（认证通过后展示） */
+  school?: string | null;
+  /** 专业 */
+  major?: string | null;
+  /** 年级 */
+  gradeLevel?: string | null;
+  /** 认证状态：0未提交 1待审 2已认证 3驳回 */
+  certStatus?: number;
+  /** 认证通过时间 */
+  certTime?: string | null;
+}
+
+/** 老师资格认证记录（老师端"我的认证"与管理员待审列表共用） */
+export interface TutorCertVO {
+  id: number;
+  tutorId: number;
+  tutorName: string | null;
+  phone?: string | null;
+  school: string | null;
+  major: string | null;
+  gradeLevel: string | null;
+  certType: number | null;
+  certTypeLabel?: string | null;
+  certNo: string | null;
+  certUrl: string | null;
+  note: string | null;
+  /** 本条记录状态：0待审 1通过 2驳回 */
+  status: number;
+  reviewNote: string | null;
+  reviewTime: string | null;
+  createTime: string;
+  /** 该老师整体认证状态：0未提交 1待审 2已认证 3驳回 */
+  certStatus?: number;
+}
+
+/** 提交资格认证的请求体 */
+export interface CertSubmitDTO {
+  school: string;
+  major: string;
+  gradeLevel: string;
+  /** 证明类型：1学生证 2学信网报告 3校园卡 4校园邮箱 5其他 */
+  certType: number;
+  certNo?: string;
+  certUrl?: string;
+  note?: string;
 }
 
 /** 学生对老师的评价（详情抽屉展示用） */
