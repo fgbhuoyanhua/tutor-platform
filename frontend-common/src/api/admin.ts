@@ -1,5 +1,13 @@
 import { get, put } from './request';
-import type { AdminLogEntity, ComplaintVO, PageResult, StatsVO, TutorEntity, UserEntity } from '../models';
+import type {
+  AdminLogEntity,
+  ComplaintVO,
+  PageResult,
+  StatsVO,
+  TutorEntity,
+  TutorViolationVO,
+  UserEntity,
+} from '../models';
 
 /** 平台数据统计 */
 export function getStats(): Promise<StatsVO> {
@@ -51,4 +59,9 @@ export function handleComplaint(
   note?: string
 ): Promise<void> {
   return put<void>(`/admin/complaints/${id}/handle`, undefined, { accept, deduct, note });
+}
+
+/** 老师违规记录列表（tutorId 为空查全部） */
+export function adminViolations(tutorId?: number, limit = 100): Promise<TutorViolationVO[]> {
+  return get<TutorViolationVO[]>('/admin/violations', { tutorId, limit });
 }

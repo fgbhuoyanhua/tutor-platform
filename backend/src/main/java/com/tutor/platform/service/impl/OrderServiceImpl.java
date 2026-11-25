@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tutor.platform.common.BizException;
 import com.tutor.platform.common.CacheEvictor;
+import com.tutor.platform.common.CreditRules;
 import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.UserContext;
 import com.tutor.platform.domain.OrderDomain;
@@ -19,6 +20,7 @@ import com.tutor.platform.mapper.RescheduleMapper;
 import com.tutor.platform.mapper.SubjectMapper;
 import com.tutor.platform.mapper.TutorMapper;
 import com.tutor.platform.mapper.UserMapper;
+import com.tutor.platform.service.GovernanceService;
 import com.tutor.platform.service.MessageService;
 import com.tutor.platform.service.OrderService;
 import com.tutor.platform.vo.IncomeVO;
@@ -60,6 +62,7 @@ public class OrderServiceImpl implements OrderService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final CacheEvictor cacheEvictor;
+    private final GovernanceService governanceService;
 
     @Override
     @Transactional
@@ -70,6 +73,12 @@ public class OrderServiceImpl implements OrderService {
         }
         if (tutor.getUserId().equals(studentId)) {
             throw new BizException("不能预约自己的家教信息");
+        }
+        // 信用分低于 60（D 级受限）的老师不再接新单：与前台「受限」标签、CreditRules.isBookable 同一口径
+        int credit = tutor.getCreditScore() == null ? CreditRules.MAX_SCORE : tutor.getCreditScore();
+        if (!CreditRules.isBookable(credit)) {
+            throw new BizException(403, "该老师信用分受限（当前 " + credit + " 分，低于 "
+                    + CreditRules.MIN_BOOKABLE_SCORE + " 分），暂不可预约");
         }
         // 时段冲突校验：同一老师同一日期同一时间段仅允许一个有效预约
         if (appointmentMapper.countConflict(tutor.getUserId(), dto.getAppointDate(), dto.getTimeSlot()) > 0) {
@@ -193,6 +202,11 @@ public class OrderServiceImpl implements OrderService {
                     messageService.send(operatorId, order.getTutorId(), 2,
                             "学生已确认完成授课，订单号：" + orderNo + "，可查看评价");
             default -> { }
+        }
+        // 完成一单 +1 信用分：状态机保证 2→3 每个订单只能发生一次，且 rows==1 说明本次请求真正完成了流转，
+        // 因此同一订单不会被重复加分（重复提交时库里已是 3，OrderDomain.next 先抛「订单状态已变化」）
+        if ("finish".equals(action)) {
+            governanceService.onOrderFinished(order.getTutorId());
         }
         // 状态变更会改变老师看板的收入、完成数与状态分布，主动失效而不等过期
         cacheEvictor.evictDashboard(order.getTutorId());

@@ -162,6 +162,11 @@ function openDetail(t: TutorVO) {
 }
 
 function openOrder(t: TutorVO) {
+  // 信用分低于 60（D 级受限）不可预约，与后端下单校验同一口径
+  if ((t.creditScore ?? 100) < 60) {
+    ElMessage.warning(`该老师信用分 ${t.creditScore ?? 0} 分，低于 60 分暂不可预约`);
+    return;
+  }
   currentTutor.value = t;
   orderForm.tutorId = t.id;
   orderForm.subjectId = t.subjectId;

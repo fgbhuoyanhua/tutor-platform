@@ -136,6 +136,12 @@ const router = createRouter({
           meta: { title: '投诉处理', roles: [ROLE_ADMIN] },
         },
         {
+          path: 'admin/violations',
+          name: 'adminViolations',
+          component: () => import('@/views/admin/ViolationList.vue'),
+          meta: { title: '违规记录', roles: [ROLE_ADMIN] },
+        },
+        {
           path: 'admin/logs',
           name: 'adminLogs',
           component: () => import('@/views/admin/AdminLog.vue'),

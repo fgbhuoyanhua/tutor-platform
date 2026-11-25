@@ -6,6 +6,7 @@ import com.tutor.platform.security.AdminLog;
 import com.tutor.platform.security.RequireRole;
 import com.tutor.platform.service.GovernanceService;
 import com.tutor.platform.vo.ComplaintVO;
+import com.tutor.platform.vo.TutorViolationVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -42,5 +43,13 @@ public class AdminGovernanceController {
                                     @RequestParam(required = false) String note) {
         governanceService.handleComplaint(id, accept, deduct, note, UserContext.getUid());
         return ApiResponse.ok();
+    }
+
+    @Operation(summary = "老师违规记录列表（tutorId 为空查全部）")
+    @GetMapping("/violations")
+    @RequireRole({UserContext.ROLE_ADMIN})
+    public ApiResponse<List<TutorViolationVO>> violations(@RequestParam(required = false) Long tutorId,
+                                                          @RequestParam(required = false) Integer limit) {
+        return ApiResponse.ok(governanceService.violations(tutorId, limit));
     }
 }

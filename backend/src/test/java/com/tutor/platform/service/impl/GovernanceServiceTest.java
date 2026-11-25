@@ -245,5 +245,61 @@ class GovernanceServiceTest {
         BizException e = assertThrows(BizException.class, () -> service.bill(2L, "2026/11"));
         assertEquals(400, e.getCode());
     }
+
+    @Test
+    @DisplayName("投诉证据路径不合法：拒绝提交")
+    void rejectIllegalEvidenceUrl() {
+        when(tutorMapper.selectList(any())).thenReturn(List.of(tutor(100)));
+        ComplaintCreateDTO d = dto(2L, "爽约");
+        d.setEvidenceUrl("https://evil.example.com/a.jpg");
+        BizException e = assertThrows(BizException.class, () -> service.submitComplaint(4L, d));
+        assertEquals(400, e.getCode());
+    }
+
+    @Test
+    @DisplayName("投诉证据路径合法：随记录落库")
+    void saveEvidenceUrl() {
+        when(tutorMapper.selectList(any())).thenReturn(List.of(tutor(100)));
+        when(complaintMapper.selectCount(any())).thenReturn(0L);
+        ComplaintCreateDTO d = dto(2L, "爽约");
+        d.setEvidenceUrl("/api/complaints/evidence/4/abcdef1234567890.jpg");
+        service.submitComplaint(4L, d);
+        ArgumentCaptor<ComplaintEntity> cc = ArgumentCaptor.forClass(ComplaintEntity.class);
+        verify(complaintMapper).insert(cc.capture());
+        assertEquals("/api/complaints/evidence/4/abcdef1234567890.jpg", cc.getValue().getEvidenceUrl());
+    }
+
+    @Test
+    @DisplayName("违规记录列表：带老师名、操作人与类型文案")
+    void violationListMapping() {
+        TutorViolationEntity v = new TutorViolationEntity();
+        v.setId(3L);
+        v.setTutorId(2L);
+        v.setType(1);
+        v.setRefType("complaint");
+        v.setRefId(7L);
+        v.setDeduct(15);
+        v.setReason("私改价格：原价120改150");
+        v.setOperatorId(1L);
+        v.setStatus(1);
+        when(violationMapper.selectList(any())).thenReturn(List.of(v));
+        when(userMapper.selectById(2L)).thenReturn(user(2L, "王老师"));
+        when(userMapper.selectById(1L)).thenReturn(user(1L, "管理员"));
+
+        var list = service.violations(null, 50);
+
+        assertEquals(1, list.size());
+        assertEquals("王老师", list.get(0).getTutorName());
+        assertEquals("投诉成立", list.get(0).getTypeLabel());
+        assertEquals("管理员", list.get(0).getOperatorName());
+        assertEquals(15, list.get(0).getDeduct());
+    }
+
+    private com.tutor.platform.entity.UserEntity user(Long id, String name) {
+        com.tutor.platform.entity.UserEntity u = new com.tutor.platform.entity.UserEntity();
+        u.setId(id);
+        u.setRealName(name);
+        return u;
+    }
 }
 

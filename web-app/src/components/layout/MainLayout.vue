@@ -74,6 +74,10 @@
             <el-icon><Warning /></el-icon>
             <span>投诉处理</span>
           </el-menu-item>
+          <el-menu-item index="/admin/violations">
+            <el-icon><CircleClose /></el-icon>
+            <span>违规记录</span>
+          </el-menu-item>
           <el-menu-item index="/admin/logs">
             <el-icon><Document /></el-icon>
             <span>操作日志</span>
@@ -149,6 +153,7 @@ import {
   Money,
   Tickets,
   Warning,
+  CircleClose,
 } from '@element-plus/icons-vue';
 import {
   ROLE_LABELS,

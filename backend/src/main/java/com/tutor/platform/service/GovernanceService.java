@@ -3,6 +3,9 @@ package com.tutor.platform.service;
 import com.tutor.platform.vo.BillVO;
 import com.tutor.platform.vo.ComplaintVO;
 import com.tutor.platform.dto.ComplaintCreateDTO;
+import com.tutor.platform.vo.TutorViolationVO;
+import org.springframework.core.io.Resource;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -39,4 +42,16 @@ public interface GovernanceService {
      * @param note      处理说明（驳回必填）
      */
     ComplaintVO handleComplaint(Long complaintId, boolean accept, Integer deduct, String note, Long adminId);
+
+    /** 订单完成：老师 +1 信用分（由订单状态机保证同一订单只调一次） */
+    void onOrderFinished(Long tutorUserId);
+
+    /** 管理员：违规记录列表（tutorId 为空查全部，按时间倒序） */
+    List<TutorViolationVO> violations(Long tutorId, Integer limit);
+
+    /** 学生上传投诉证据（jpg/png/pdf，≤5MB），返回后端访问路径 */
+    String uploadEvidence(Long userId, MultipartFile file);
+
+    /** 读取投诉证据（本人 / 管理员可读） */
+    Resource loadEvidence(Long requesterId, Integer requesterRole, Long ownerUserId, String fileName);
 }

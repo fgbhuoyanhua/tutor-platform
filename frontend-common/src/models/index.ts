@@ -316,6 +316,27 @@ export interface RecommendWeights {
   credit: number;
 }
 
+/** 老师违规记录（管理端「违规记录」页） */
+export interface TutorViolationVO {
+  id: number;
+  tutorId: number;
+  tutorName: string;
+  /** 1投诉成立 2超时未确认 3频繁拒绝 */
+  type: number;
+  typeLabel: string;
+  /** 关联单据类型：complaint / appointment */
+  refType: string | null;
+  refId: number | null;
+  /** 本次扣减信用分（正数） */
+  deduct: number;
+  reason: string | null;
+  operatorId: number | null;
+  operatorName: string;
+  /** 1有效 0已撤销 */
+  status: number;
+  createTime: string;
+}
+
 /** 管理员操作日志 */
 export interface AdminLogEntity {
   id: number;

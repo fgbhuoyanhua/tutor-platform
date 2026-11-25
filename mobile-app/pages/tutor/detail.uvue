@@ -151,6 +151,16 @@ export default {
       })
     },
     goBook() {
+      // 信用分低于 60（D 级受限）不可预约，与后端 CreditRules.isBookable、下单接口校验同一口径
+      let credit = 100
+      if (this.tutor != null) {
+        const cs = this.tutor!['creditScore']
+        if (cs != null) credit = cs as number
+      }
+      if (credit < 60) {
+        uni.showToast({ title: '该老师信用分 ' + credit + ' 分，低于 60 分暂不可预约', icon: 'none', duration: 5000 })
+        return
+      }
       uni.navigateTo({
         url: '/pages/order/create?id=' + this.tutorId
       })

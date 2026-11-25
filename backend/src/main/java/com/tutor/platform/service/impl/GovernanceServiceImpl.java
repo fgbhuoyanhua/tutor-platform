@@ -12,6 +12,7 @@ import com.tutor.platform.entity.SubjectEntity;
 import com.tutor.platform.entity.TutorEntity;
 import com.tutor.platform.entity.TutorViolationEntity;
 import com.tutor.platform.entity.UserEntity;
+import com.tutor.platform.common.UserContext;
 import com.tutor.platform.mapper.AppointmentMapper;
 import com.tutor.platform.mapper.ComplaintMapper;
 import com.tutor.platform.mapper.SubjectMapper;
@@ -23,15 +24,27 @@ import com.tutor.platform.service.MessageService;
 import com.tutor.platform.vo.BillItemVO;
 import com.tutor.platform.vo.BillVO;
 import com.tutor.platform.vo.ComplaintVO;
+import com.tutor.platform.vo.TutorViolationVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +67,10 @@ public class GovernanceServiceImpl implements GovernanceService {
     private static final int FINISH_ADD = CreditRules.FINISH_ADD;
     private static final int DEFAULT_DEDUCT = 10;
     private static final int MAX_DEDUCT = 50;
+    private static final int MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final List<String> ALLOWED_EXT = Arrays.asList("jpg", "jpeg", "png", "pdf");
+    private static final String EVIDENCE_PATH_PREFIX = "/api/complaints/evidence/";
+    private static final String FILE_NAME_PATTERN = "^[a-zA-Z0-9]{8,64}\\.(jpg|jpeg|png|pdf)$";
 
     private final AppointmentMapper appointmentMapper;
     private final TutorMapper tutorMapper;
@@ -63,6 +80,9 @@ public class GovernanceServiceImpl implements GovernanceService {
     private final TutorViolationMapper violationMapper;
     private final MessageService messageService;
     private final CacheEvictor cacheEvictor;
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
 
     // ==================== 课时账单 ====================
 
@@ -168,6 +188,13 @@ public class GovernanceServiceImpl implements GovernanceService {
         }
         if (dto.getContent().trim().length() > 500) {
             throw new BizException(400, "投诉说明不能超过500字");
+        }
+        // 证据文件必须来自本系统的上传接口，防止把任意外链塞进库里
+        if (StringUtils.hasText(dto.getEvidenceUrl())) {
+            String url = dto.getEvidenceUrl().trim();
+            if (!url.startsWith(EVIDENCE_PATH_PREFIX) || url.length() > 255) {
+                throw new BizException(400, "证据文件路径不合法");
+            }
         }
         List<TutorEntity> tutors = tutorMapper.selectList(new LambdaQueryWrapper<TutorEntity>()
                 .eq(TutorEntity::getUserId, dto.getTutorId()));
@@ -306,8 +333,101 @@ public class GovernanceServiceImpl implements GovernanceService {
     }
 
     /** 完成一单：加信用分（上限夹紧，由调用方保证只调一次） */
+    @Override
     public void onOrderFinished(Long tutorUserId) {
         addCredit(tutorUserId, FINISH_ADD, 0);
+    }
+
+    // ==================== 违规记录（管理端） ====================
+
+    @Override
+    public List<TutorViolationVO> violations(Long tutorId, Integer limit) {
+        int lim = (limit == null || limit <= 0) ? 100 : Math.min(limit, 200);
+        List<TutorViolationEntity> list = violationMapper.selectList(new LambdaQueryWrapper<TutorViolationEntity>()
+                .eq(tutorId != null, TutorViolationEntity::getTutorId, tutorId)
+                .orderByDesc(TutorViolationEntity::getCreateTime)
+                .orderByDesc(TutorViolationEntity::getId)
+                .last("LIMIT " + lim));
+        return list.stream().map(this::violationToVO).collect(Collectors.toList());
+    }
+
+    private TutorViolationVO violationToVO(TutorViolationEntity v) {
+        return TutorViolationVO.builder()
+                .id(v.getId())
+                .tutorId(v.getTutorId())
+                .tutorName(nameOf(v.getTutorId()))
+                .type(v.getType())
+                .typeLabel(violationTypeLabel(v.getType()))
+                .refType(v.getRefType())
+                .refId(v.getRefId())
+                .deduct(v.getDeduct())
+                .reason(v.getReason())
+                .operatorId(v.getOperatorId())
+                .operatorName(v.getOperatorId() == null ? "系统" : nameOf(v.getOperatorId()))
+                .status(v.getStatus())
+                .createTime(v.getCreateTime())
+                .build();
+    }
+
+    public static String violationTypeLabel(Integer t) {
+        if (t == null) {
+            return "其他";
+        }
+        switch (t) {
+            case 1: return "投诉成立";
+            case 2: return "超时未确认";
+            case 3: return "频繁拒绝";
+            default: return "其他";
+        }
+    }
+
+    // ==================== 投诉证据文件 ====================
+
+    @Override
+    public String uploadEvidence(Long userId, MultipartFile file) {
+        if (file == null || file.isEmpty() || file.getSize() <= 0) {
+            throw new BizException(400, "请选择要上传的证据文件");
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new BizException(400, "证据文件不能超过 5MB");
+        }
+        String original = file.getOriginalFilename();
+        String ext = "";
+        if (original != null && original.contains(".")) {
+            ext = original.substring(original.lastIndexOf('.') + 1).toLowerCase();
+        }
+        if (!ALLOWED_EXT.contains(ext)) {
+            throw new BizException(400, "仅支持 JPG、PNG、PDF 格式的证据文件");
+        }
+        // 文件名由服务端生成，不采用客户端文件名，避免路径穿越与同名覆盖
+        String fileName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+        Path dir = Paths.get(uploadDir, "complaint", String.valueOf(userId));
+        try {
+            Files.createDirectories(dir);
+            Path target = dir.resolve(fileName);
+            file.transferTo(target.toFile());
+        } catch (IOException e) {
+            log.error("投诉证据保存失败: {}", e.getMessage());
+            throw new BizException(500, "证据文件保存失败，请稍后重试");
+        }
+        return EVIDENCE_PATH_PREFIX + userId + "/" + fileName;
+    }
+
+    @Override
+    public Resource loadEvidence(Long requesterId, Integer requesterRole, Long ownerUserId, String fileName) {
+        if (ownerUserId == null || !StringUtils.hasText(fileName) || !fileName.matches(FILE_NAME_PATTERN)) {
+            throw new BizException(404, "文件不存在");
+        }
+        boolean isAdmin = requesterRole != null && requesterRole == UserContext.ROLE_ADMIN;
+        if (!isAdmin && !ownerUserId.equals(requesterId)) {
+            throw new BizException(403, "无权查看该证据文件");
+        }
+        Path base = Paths.get(uploadDir, "complaint").toAbsolutePath().normalize();
+        Path target = base.resolve(ownerUserId.toString()).resolve(fileName).normalize();
+        if (!target.startsWith(base) || !Files.exists(target)) {
+            throw new BizException(404, "文件不存在");
+        }
+        return new FileSystemResource(target);
     }
 
     // ==================== 内部工具 ====================

@@ -1,4 +1,4 @@
-import { get, post, put } from './request';
+import { get, post, postForm, put } from './request';
 import type {
   BillVO,
   ComplaintCreateDTO,
@@ -84,6 +84,13 @@ export function submitComplaint(data: ComplaintCreateDTO): Promise<number> {
 /** 我提交的投诉 */
 export function myComplaints(): Promise<ComplaintVO[]> {
   return get<ComplaintVO[]>('/complaints/my');
+}
+
+/** 上传投诉证据（jpg/png/pdf，≤5MB），返回 /api/complaints/evidence/{userId}/{name} */
+export function uploadComplaintEvidence(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  return postForm<string>('/complaints/evidence', form);
 }
 
 /** 老师回复评价 */

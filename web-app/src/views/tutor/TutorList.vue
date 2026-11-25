@@ -52,7 +52,16 @@
             <span class="price">{{ formatPrice(t.price) }}<em>/小时</em></span>
             <span class="rating">★ {{ t.rating }}</span>
           </div>
-          <el-button type="primary" size="small" class="order-btn" @click="openOrder(t)">
+          <el-button
+            v-if="!isBookable(t)"
+            type="info"
+            size="small"
+            class="order-btn"
+            disabled
+          >
+            暂不可预约
+          </el-button>
+          <el-button v-else type="primary" size="small" class="order-btn" @click="openOrder(t)">
             预约 TA
           </el-button>
         </el-card>
@@ -177,7 +186,9 @@
         </div>
         <div class="detail-actions">
           <el-button @click="goChat">发消息</el-button>
-          <el-button type="primary" @click="fromDetailOrder">预约 TA</el-button>
+          <el-button type="primary" :disabled="!isBookable(detailTutor)" @click="fromDetailOrder">
+            {{ isBookable(detailTutor) ? '预约 TA' : '信用受限，暂不可预约' }}
+          </el-button>
         </div>
       </div>
     </el-drawer>
@@ -243,6 +254,12 @@ function creditColor(score: number): string {
   if (score >= 75) return '#67c23a';
   if (score >= 60) return '#409eff';
   return '#909399';
+}
+
+/** 信用分低于 60（D 级受限）不可预约，与后端 CreditRules.isBookable、下单接口校验一致 */
+function isBookable(t: TutorVO | null): boolean {
+  if (!t) return false;
+  return (t.creditScore ?? 100) >= 60;
 }
 
 const orderVisible = ref(false);
@@ -385,6 +402,10 @@ async function toggleFav(t: TutorVO) {
 function openOrder(t: TutorVO) {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录');
+    return;
+  }
+  if (!isBookable(t)) {
+    ElMessage.warning(`该老师信用分 ${t.creditScore ?? 0} 分，低于 60 分暂不可预约`);
     return;
   }
   currentTutor.value = t;

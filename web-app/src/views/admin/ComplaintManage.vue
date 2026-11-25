@@ -19,6 +19,14 @@
             <span class="muted">{{ row.orderNo || '—' }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="证据" width="90">
+          <template #default="{ row }">
+            <el-button v-if="row.evidenceUrl" link type="primary" size="small" @click="previewEvidence(row.evidenceUrl)">
+              查看
+            </el-button>
+            <span v-else class="muted">—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag size="small" :type="statusTag(row.status)">{{ row.statusLabel }}</el-tag>
@@ -53,6 +61,12 @@
         <el-form-item label="投诉内容">
           <span class="content">{{ current?.content }}</span>
         </el-form-item>
+        <el-form-item label="证据材料">
+          <el-button v-if="current?.evidenceUrl" link type="primary" @click="previewEvidence(current.evidenceUrl)">
+            查看证据
+          </el-button>
+          <span v-else class="muted">投诉人未上传证据</span>
+        </el-form-item>
         <el-form-item v-if="accept" label="扣减信用分">
           <el-input-number v-model="deduct" :min="1" :max="50" />
           <div class="tip">投诉成立会写一条违规记录，信用分低于 60 时老师被限制接单</div>
@@ -83,6 +97,7 @@ import {
   adminComplaints,
   handleComplaint,
   formatDateTime,
+  getBlob,
   type ComplaintVO,
 } from '@tutor-platform/frontend-common';
 
@@ -122,6 +137,16 @@ function openHandle(row: ComplaintVO, pass: boolean) {
   deduct.value = 10;
   note.value = '';
   dialogVisible.value = true;
+}
+
+/** 证据是私有资源，管理员也得带 token 取二进制 */
+async function previewEvidence(url: string) {
+  try {
+    const blob = await getBlob(url);
+    window.open(URL.createObjectURL(blob), '_blank');
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
 }
 
 async function confirmHandle() {

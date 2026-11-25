@@ -17,6 +17,14 @@
               <el-tag size="small" :type="statusTag(row.status)">{{ row.statusLabel }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="证据" width="90">
+            <template #default="{ row }">
+              <el-button v-if="row.evidenceUrl" link type="primary" size="small" @click="previewEvidence(row.evidenceUrl)">
+                查看
+              </el-button>
+              <span v-else class="muted">—</span>
+            </template>
+          </el-table-column>
           <el-table-column label="处理说明" width="220" show-overflow-tooltip>
             <template #default="{ row }">{{ row.handleNote || '—' }}</template>
           </el-table-column>
@@ -67,6 +75,18 @@
               placeholder="请描述发生了什么，便于管理员核实"
             />
           </el-form-item>
+          <el-form-item label="证据材料">
+            <div class="evidence-row">
+              <el-upload :show-file-list="false" :http-request="doUpload" accept=".jpg,.jpeg,.png,.pdf">
+                <el-button :loading="uploading">上传截图/凭证（jpg/png/pdf，≤5MB）</el-button>
+              </el-upload>
+              <span v-if="form.evidenceUrl" class="uploaded">
+                已上传
+                <el-button link type="primary" size="small" @click="previewEvidence(form.evidenceUrl)">预览</el-button>
+                <el-button link type="danger" size="small" @click="form.evidenceUrl = null">移除</el-button>
+              </span>
+            </div>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" :loading="submitting" @click="submit">提交投诉</el-button>
             <span class="hint">同一老师同一订单同时只能有一条待处理投诉</span>
@@ -87,6 +107,8 @@ import {
   pageTutors,
   submitComplaint,
   pageOrders,
+  uploadComplaintEvidence,
+  getBlob,
   type ComplaintVO,
   type OrderVO,
   type TutorVO,
@@ -98,12 +120,14 @@ const mineLoading = ref(false);
 const tutors = ref<TutorVO[]>([]);
 const myOrders = ref<OrderVO[]>([]);
 const submitting = ref(false);
+const uploading = ref(false);
 
 const form = reactive({
   tutorId: undefined as number | undefined,
   type: 1,
   orderId: undefined as number | undefined,
   content: '',
+  evidenceUrl: null as string | null,
 });
 
 function statusTag(status: number): 'warning' | 'success' | 'info' {
@@ -154,16 +178,41 @@ async function submit() {
       type: form.type,
       content: form.content.trim(),
       orderId: form.orderId ?? null,
+      evidenceUrl: form.evidenceUrl,
     });
     ElMessage.success('投诉已提交，管理员会尽快处理');
     form.content = '';
     form.orderId = undefined;
+    form.evidenceUrl = null;
     await loadMine();
     tab.value = 'mine';
   } catch (e) {
     ElMessage.error((e as Error).message);
   } finally {
     submitting.value = false;
+  }
+}
+
+async function doUpload(options: { file: File }) {
+  uploading.value = true;
+  try {
+    form.evidenceUrl = await uploadComplaintEvidence(options.file);
+    ElMessage.success('证据上传成功');
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    uploading.value = false;
+  }
+}
+
+/** 证据是私有资源，必须带 token 取二进制再本地打开 */
+async function previewEvidence(url: string) {
+  try {
+    const blob = await getBlob(url);
+    const objUrl = URL.createObjectURL(blob);
+    window.open(objUrl, '_blank');
+  } catch (e) {
+    ElMessage.error((e as Error).message);
   }
 }
 </script>
@@ -177,5 +226,17 @@ async function submit() {
   margin-left: 12px;
   color: #909399;
   font-size: 12px;
+}
+.evidence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.uploaded {
+  color: #67c23a;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>

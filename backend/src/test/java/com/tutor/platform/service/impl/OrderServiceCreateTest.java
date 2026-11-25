@@ -10,6 +10,7 @@ import com.tutor.platform.mapper.RescheduleMapper;
 import com.tutor.platform.mapper.SubjectMapper;
 import com.tutor.platform.mapper.TutorMapper;
 import com.tutor.platform.mapper.UserMapper;
+import com.tutor.platform.service.GovernanceService;
 import com.tutor.platform.service.MessageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ class OrderServiceCreateTest {
     private SubjectMapper subjectMapper;
     private MessageService messageService;
     private RescheduleMapper rescheduleMapper;
+    private GovernanceService governanceService;
     private OrderServiceImpl orderService;
 
     @BeforeEach
@@ -55,11 +57,12 @@ class OrderServiceCreateTest {
         subjectMapper = mock(SubjectMapper.class);
         messageService = mock(MessageService.class);
         rescheduleMapper = mock(RescheduleMapper.class);
+        governanceService = mock(GovernanceService.class);
         orderService = new OrderServiceImpl(
                 appointmentMapper, tutorMapper, userMapper, subjectMapper,
                 messageService, rescheduleMapper,
                 mock(StringRedisTemplate.class), new ObjectMapper(),
-                mock(CacheEvictor.class));
+                mock(CacheEvictor.class), governanceService);
     }
 
     private TutorEntity tutor(long userId, int status) {
@@ -134,6 +137,29 @@ class OrderServiceCreateTest {
         assertTrue(saved.getOrderNo().length() >= 14, "订单号应为时间戳+随机后缀");
 
         verify(messageService).send(eq(10L), eq(2L), any(Integer.class), anyString());
+    }
+
+    @Test
+    @DisplayName("信用分低于 60（D 级受限）：拒绝下单")
+    void rejectWhenTutorCreditRestricted() {
+        TutorEntity t = tutor(2L, 1);
+        t.setCreditScore(55);
+        when(tutorMapper.selectById(1L)).thenReturn(t);
+        BizException e = assertThrows(BizException.class, () -> orderService.create(10L, dto()));
+        assertTrue(e.getMessage().contains("信用分受限"), e.getMessage());
+        assertEquals(403, e.getCode());
+        verify(appointmentMapper, never()).insert(any(AppointmentEntity.class));
+    }
+
+    @Test
+    @DisplayName("信用分刚好 60（C 级）：允许下单")
+    void allowWhenTutorCreditAtThreshold() {
+        TutorEntity t = tutor(2L, 1);
+        t.setCreditScore(60);
+        when(tutorMapper.selectById(1L)).thenReturn(t);
+        when(appointmentMapper.countConflict(anyLong(), any(), anyString())).thenReturn(0L);
+        orderService.create(10L, dto());
+        verify(appointmentMapper).insert(any(AppointmentEntity.class));
     }
 
     @Test
