@@ -65,6 +65,18 @@ export interface TutorVO {
   certStatus?: number;
   /** 认证通过时间 */
   certTime?: string | null;
+  /** 信用分 0-100 */
+  creditScore?: number;
+  /** 等级：A 金牌 / B 优质 / C 普通 / D 受限 */
+  creditLevel?: string;
+  /** 等级中文名 */
+  creditLevelLabel?: string;
+  /** 违规累计次数 */
+  violationCount?: number;
+  /** 推荐分 0~1（仅推荐排序接口返回） */
+  recommendScore?: number;
+  /** 推荐理由文案（仅推荐排序接口返回） */
+  recommendReason?: string;
 }
 
 /** 老师资格认证记录（老师端"我的认证"与管理员待审列表共用） */
@@ -236,6 +248,72 @@ export interface UserEntity {
   role: number;
   status: number;
   createTime: string;
+}
+
+/** 课时账单逐笔明细（订单快照） */
+export interface BillItemVO {
+  orderId: number;
+  orderNo: string;
+  studentName: string;
+  subjectName: string;
+  appointDate: string;
+  timeSlot: string;
+  durationMinutes: number;
+  unitPrice: number;
+  amount: number;
+  status: number;
+  statusName: string;
+}
+
+/** 老师月度课时账单 */
+export interface BillVO {
+  month: string;
+  finishedCount: number;
+  finishedMinutes: number;
+  totalAmount: number;
+  pendingCount: number;
+  items: BillItemVO[];
+}
+
+/** 投诉举报（学生端/管理端共用） */
+export interface ComplaintVO {
+  id: number;
+  complainantId: number;
+  complainantName: string;
+  tutorId: number;
+  tutorName: string;
+  orderId: number | null;
+  orderNo: string | null;
+  type: number;
+  typeLabel: string;
+  content: string;
+  evidenceUrl: string | null;
+  /** 0待处理 1成立 2驳回 */
+  status: number;
+  statusLabel: string;
+  handlerId: number | null;
+  handleNote: string | null;
+  handlerTime: string | null;
+  deductScore: number;
+  createTime: string;
+}
+
+/** 提交投诉请求体 */
+export interface ComplaintCreateDTO {
+  tutorId: number;
+  orderId?: number | null;
+  /** 1爽约 2私改价格 3骚扰辱骂 4虚假信息 5其他 */
+  type: number;
+  content: string;
+  evidenceUrl?: string | null;
+}
+
+/** 推荐排序权重（后端配置项映射） */
+export interface RecommendWeights {
+  cert: number;
+  rating: number;
+  finish: number;
+  credit: number;
 }
 
 /** 管理员操作日志 */

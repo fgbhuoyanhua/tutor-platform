@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
     <view class="card user-card">
       <view v-if="hasAvatar" class="avatar" :src="user!['avatar']" mode="aspectFill" />
@@ -23,8 +23,18 @@
     </view>
 
     <view class="card menu-card">
-      <view v-if="isTutor" class="menu-item menu-item-gap" @click="goCert">
+      <!-- 2026-11-25：UVUE 里 computed 布尔（isTutor/isStudent）放在多个相邻 v-if 上只有第一个生效，
+           实测会导致学生看到老师的「课时账单」入口。改为从「角色」出发单分支判断。 -->
+      <view v-if="role == 2" class="menu-item menu-item-gap" @click="goCert">
         <text class="menu-text">资格认证</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view v-if="role == 2" class="menu-item menu-item-gap" @click="goBill">
+        <text class="menu-text">课时账单</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view v-if="role != 2" class="menu-item menu-item-gap" @click="goComplaint">
+        <text class="menu-text">投诉举报</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @click="goPassword">
@@ -64,8 +74,8 @@ export default {
       if (this.user == null) return ''
       return ROLE_LABELS_FN(this.user!['role'] as number)
     },
-    isTutor(): boolean {
-      return this.user != null && this.user!['role'] == 2
+    role(): number {
+      return this.user == null ? 0 : (this.user!['role'] as number)
     }
   },
   onShow() {
@@ -112,6 +122,12 @@ export default {
     },
     goCert() {
       uni.navigateTo({ url: '/pages/tutor/cert' })
+    },
+    goBill() {
+      uni.navigateTo({ url: '/pages/tutor/bill' })
+    },
+    goComplaint() {
+      uni.navigateTo({ url: '/pages/student/complaint' })
     },
     logout() {
       clearToken()

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
     <view v-if="role == 2" class="workbench">
       <view class="welcome">
@@ -24,6 +24,10 @@
         <view class="quick-item" @click="goIncome">
           <text class="quick-icon">💰</text>
           <text class="quick-label">收入统计</text>
+        </view>
+        <view class="quick-item" @click="goBill">
+          <text class="quick-icon">🧾</text>
+          <text class="quick-label">课时账单</text>
         </view>
       </view>
 
@@ -74,6 +78,10 @@
         <text class="quick-icon">❤️</text>
         <text class="quick-label">我的收藏</text>
       </view>
+      <view class="quick-item" @click="goComplaint">
+        <text class="quick-icon">⚠️</text>
+        <text class="quick-label">投诉举报</text>
+      </view>
     </view>
     <text class="page-title">找家教</text>
     <scroll-view class="filter" scroll-x>
@@ -108,8 +116,12 @@
           <text class="tutor-name">{{ t['tutorName'] }}</text>
           <view class="tutor-tags">
             <text class="tag tag-subject">{{ t['subjectName'] }}</text>
+            <!-- 徽标用 computed 函数拼字符串：UVUE 的 v-if 里做类型强转容易踩坑（2026-11-25 实测 v-if 恒为假） -->
+            <text v-if="certTag(t) != ''" class="tag tag-cert">{{ certTag(t) }}</text>
+            <text v-if="creditTag(t) != ''" class="tag tag-credit">{{ creditTag(t) }}</text>
             <text class="tag">{{ t['grade'] }}</text>
           </view>
+          <text v-if="schoolLine(t) != ''" class="school">{{ schoolLine(t) }}</text>
         </view>
       </view>
       <text class="introduce">{{ t['introduce'] }}</text>
@@ -125,7 +137,7 @@
 </template>
 
 <script lang="uts">
-import { pageTutors, recommendTutors } from '../../api/tutor'
+import { pageTutors, recommendRanked } from '../../api/tutor'
 import { listSubjects } from '../../api/subject'
 import { listFavorites } from '../../api/favorite'
 import { pageOrders } from '../../api/order'
@@ -188,6 +200,24 @@ export default {
     this.load()
   },
   methods: {
+    certTag(t: UTSJSONObject): string {
+      const cs = t['certStatus']
+      return cs != null && (cs as number) == 2 ? '已认证' : ''
+    },
+    creditTag(t: UTSJSONObject): string {
+      const lv = t['creditLevel']
+      if (lv == null || lv == '') return ''
+      const label = t['creditLevelLabel']
+      return (lv as string) + ' ' + (label == null ? '' : (label as string))
+    },
+    schoolLine(t: UTSJSONObject): string {
+      const cs = t['certStatus']
+      if (cs == null || (cs as number) != 2) return ''
+      const s = t['school']
+      if (s == null || s == '') return ''
+      const m = t['major']
+      return m == null || m == '' ? (s as string) : (s as string) + ' · ' + (m as string)
+    },
     async loadOrders() {
       try {
         const params = new Map<string, any>()
@@ -233,10 +263,10 @@ export default {
     },
     async loadRecommend() {
       try {
-        const res = await recommendTutors(this.subjectId, 3)
+        const res = await recommendRanked(this.subjectId, 5)
         this.list = res['list'] as UTSJSONObject[]
         this.onlyFav = false
-        uni.showToast({ title: '已为您推荐老师', icon: 'none' })
+        uni.showToast({ title: '已按加权推荐排序', icon: 'none' })
       } catch (e) {
         uni.showToast({ title: '推荐失败', icon: 'none' })
       }
@@ -255,6 +285,8 @@ export default {
     goOrders() { uni.switchTab({ url: '/pages/order/list' }) },
     goEvals() { uni.navigateTo({ url: '/pages/tutor/evaluations' }) },
     goIncome() { uni.navigateTo({ url: '/pages/tutor/income' }) },
+    goBill() { uni.navigateTo({ url: '/pages/tutor/bill' }) },
+    goComplaint() { uni.navigateTo({ url: '/pages/student/complaint' }) },
     goStudentCalendar() { uni.navigateTo({ url: '/pages/student/calendar' }) },
     goFavorites() { uni.navigateTo({ url: '/pages/favorite/list' }) }
   }
@@ -499,6 +531,19 @@ export default {
 .tag-subject {
   color: #4f6ef7;
   background: #ecf5ff;
+}
+.tag-cert {
+  color: #b8860b;
+  background: #fff7e6;
+}
+.tag-credit {
+  color: #059669;
+  background: #ecfdf5;
+}
+.school {
+  font-size: 22rpx;
+  color: #b8860b;
+  margin-top: 8rpx;
 }
 .introduce {
   font-size: 26rpx;

@@ -43,3 +43,11 @@ export function replyEvaluation(id: number, reply: string): Promise<UTSJSONObjec
   body.set('reply', reply)
   return put('/evaluations/' + id + '/reply', body)
 }
+
+/** 推荐排序版：认证/评分/完课/信用 四维加权，返回带推荐分与推荐理由 */
+export function recommendRanked(subjectId: number, limit: number): Promise<UTSJSONObject> {
+  const params = new Map<string, any>()
+  if (subjectId != 0) params.set('subjectId', subjectId)
+  params.set('limit', limit)
+  return get('/tutors/recommend-ranked', params)
+}

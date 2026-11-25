@@ -45,7 +45,8 @@ class TutorServicePublishTest {
                 mock(MessageService.class),
                 mock(StringRedisTemplate.class),
                 new ObjectMapper(),
-                mock(CacheEvictor.class));
+                mock(CacheEvictor.class),
+                new com.tutor.platform.common.CreditRules(0.35, 0.25, 0.20, 0.20));
     }
 
     private TutorEntity valid() {

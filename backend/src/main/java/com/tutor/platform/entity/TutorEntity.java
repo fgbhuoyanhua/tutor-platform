@@ -53,5 +53,11 @@ public class TutorEntity {
     /** 校园邮箱（可选） */
     private String eduEmail;
 
+    /** 信用分：满分 100，违规扣分、完成订单加分 */
+    private Integer creditScore;
+
+    /** 违规累计次数 */
+    private Integer violationCount;
+
     private LocalDateTime createTime;
 }

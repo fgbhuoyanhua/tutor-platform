@@ -37,6 +37,9 @@
               <div class="tutor-subject">
                 <el-tag size="small" type="success">{{ t.subjectName }}</el-tag>
                 <el-tag v-if="t.certStatus === 2" size="small" type="warning" effect="plain">已认证</el-tag>
+                <el-tag v-if="t.creditLevel" size="small" :type="creditTagType(t.creditLevel)" effect="dark">
+                  {{ t.creditLevel }} {{ t.creditLevelLabel }}
+                </el-tag>
                 <span class="grade">擅长{{ t.grade }}</span>
               </div>
               <div v-if="t.certStatus === 2 && t.school" class="school">
@@ -67,15 +70,30 @@
       @current-change="load"
     />
 
-    <el-dialog v-model="recommendVisible" title="智能推荐老师" width="600px">
+    <el-dialog v-model="recommendVisible" title="智能推荐老师（加权排序）" width="620px">
+      <div class="weights">
+        排序公式：
+        <el-tag size="small">认证 {{ pct(weights?.cert) }}</el-tag>
+        <el-tag size="small" type="success">评分 {{ pct(weights?.rating) }}</el-tag>
+        <el-tag size="small" type="warning">完课 {{ pct(weights?.finish) }}</el-tag>
+        <el-tag size="small" type="info">信用 {{ pct(weights?.credit) }}</el-tag>
+        <span class="weights-hint">权重在 application.yml 可调，改完重启即生效</span>
+      </div>
       <div v-if="recommendLoading" v-loading="true" style="height:200px"></div>
       <div v-else-if="recommendList.length === 0" class="ev-empty">暂无推荐老师</div>
       <div v-else>
-        <div v-for="t in recommendList" :key="t.id" class="rec-item" @click="openDetail(t)">
+        <div v-for="(t, i) in recommendList" :key="t.id" class="rec-item" @click="openDetail(t)">
+          <span class="rec-rank">{{ i + 1 }}</span>
           <el-avatar :size="40" :src="t.avatar || undefined">{{ (t.tutorName||'?')[0] }}</el-avatar>
           <div style="flex:1;margin-left:12px">
-            <div style="font-weight:600">{{ t.tutorName }} <el-tag size="small" type="success">{{ t.subjectName }}</el-tag></div>
-            <div style="color:#909399;font-size:12px">★{{ t.rating }} · ¥{{ t.price }}/小时 · {{ t.finishedOrderCount||0 }}次授课</div>
+            <div style="font-weight:600">
+              {{ t.tutorName }} <el-tag size="small" type="success">{{ t.subjectName }}</el-tag>
+            </div>
+            <div class="rec-reason">推荐理由：{{ t.recommendReason }}</div>
+          </div>
+          <div class="rec-score">
+            <div class="rec-score-num">{{ t.recommendScore }}</div>
+            <div class="rec-score-label">推荐分</div>
           </div>
         </div>
       </div>
@@ -117,7 +135,11 @@
           <div>
             <div class="detail-name">{{ detailTutor.tutorName }}</div>
             <el-tag size="small" type="success">{{ detailTutor.subjectName }}</el-tag>
+            <el-tag v-if="detailTutor.certStatus === 2" size="small" type="warning" effect="plain">已认证</el-tag>
             <span class="grade">{{ detailTutor.grade }}</span>
+            <div v-if="detailTutor.certStatus === 2 && detailTutor.school" class="school detail-school">
+              {{ detailTutor.school }}<span v-if="detailTutor.major"> · {{ detailTutor.major }}</span>
+            </div>
           </div>
         </div>
         <div class="detail-stats">
@@ -125,6 +147,18 @@
           <div class="stat"><b>★ {{ detailTutor.rating }}</b><span>综合评分</span></div>
           <div class="stat"><b>{{ detailTutor.evaluateCount ?? 0 }}</b><span>条评价</span></div>
           <div class="stat"><b>{{ detailTutor.finishedOrderCount ?? 0 }}</b><span>次授课</span></div>
+        </div>
+        <div class="credit-bar">
+          <span class="credit-label">信用分</span>
+          <el-progress
+            :percentage="detailTutor.creditScore ?? 100"
+            :stroke-width="10"
+            :format="() => `${detailTutor?.creditScore ?? 100}`"
+            :color="creditColor(detailTutor.creditScore ?? 100)"
+          />
+          <el-tag size="small" :type="creditTagType(detailTutor.creditLevel || 'A')">
+            {{ detailTutor.creditLevel }} {{ detailTutor.creditLevelLabel }}
+          </el-tag>
         </div>
         <h4 class="detail-sec">个人简介</h4>
         <p class="detail-intro">{{ detailTutor.introduce || '暂无简介' }}</p>
@@ -163,13 +197,15 @@ import {
   addFavorite,
   removeFavorite,
   listFavorites,
-  recommendTutors,
+  recommendRanked,
+  getRecommendWeights,
   TIME_SLOTS,
   formatPrice,
   formatDateTime,
   type TutorVO,
   type EvaluationVO,
   type SubjectEntity,
+  type RecommendWeights,
 } from '@tutor-platform/frontend-common';
 import { useUserStore } from '@/stores/user';
 
@@ -187,6 +223,27 @@ const favIds = ref<Set<number>>(new Set());
 const recommendVisible = ref(false);
 const recommendLoading = ref(false);
 const recommendList = ref<TutorVO[]>([]);
+const weights = ref<RecommendWeights | null>(null);
+
+function pct(w?: number): string {
+  return `${Math.round((w ?? 0) * 100)}%`;
+}
+
+/** 信用等级 → el-tag 颜色：A 金 / B 绿 / C 蓝 / D 灰 */
+function creditTagType(level: string): 'warning' | 'success' | 'primary' | 'info' {
+  if (level === 'A') return 'warning';
+  if (level === 'B') return 'success';
+  if (level === 'C') return 'primary';
+  return 'info';
+}
+
+/** 信用分进度条颜色：与等级阈值一致 */
+function creditColor(score: number): string {
+  if (score >= 90) return '#e6a23c';
+  if (score >= 75) return '#67c23a';
+  if (score >= 60) return '#409eff';
+  return '#909399';
+}
 
 const orderVisible = ref(false);
 const submitting = ref(false);
@@ -287,7 +344,13 @@ async function openRecommend() {
   recommendVisible.value = true;
   recommendLoading.value = true;
   try {
-    recommendList.value = await recommendTutors(query.subjectId, undefined, 3);
+    // 显式加权排序：认证/评分/完课/信用，返回每条带 recommendScore + 推荐理由
+    const [list, w] = await Promise.all([
+      recommendRanked(query.subjectId, 5),
+      weights.value ? Promise.resolve(weights.value) : getRecommendWeights(),
+    ]);
+    recommendList.value = list;
+    weights.value = w;
   } catch (e) {
     ElMessage.error((e as Error).message);
   } finally {
@@ -560,5 +623,59 @@ async function submitOrder() {
 }
 .rec-item:hover {
   background: #f8faff;
+}
+.weights {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.weights-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.rec-rank {
+  width: 22px;
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 15px;
+}
+.rec-reason {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.rec-score {
+  text-align: center;
+  width: 60px;
+}
+.rec-score-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--warning);
+}
+.rec-score-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.detail-school {
+  margin-top: 4px;
+}
+.credit-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.credit-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.credit-bar :deep(.el-progress) {
+  flex: 1;
 }
 </style>

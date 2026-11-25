@@ -61,5 +61,23 @@ public class TutorVO {
     /** 认证通过时间 */
     private LocalDateTime certTime;
 
+    /** 信用分 0-100 */
+    private Integer creditScore;
+
+    /** 等级：A 金牌 / B 优质 / C 普通 / D 受限 */
+    private String creditLevel;
+
+    /** 等级中文名 */
+    private String creditLevelLabel;
+
+    /** 违规累计次数 */
+    private Integer violationCount;
+
+    /** 推荐分（按当前权重算出的 0~1 可解释分） */
+    private Double recommendScore;
+
+    /** 推荐理由文案，如"已认证教师 · 完课 12 单" */
+    private String recommendReason;
+
     private LocalDateTime createTime;
 }

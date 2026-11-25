@@ -79,6 +79,19 @@ public class TutorController {
         return ApiResponse.ok(tutorService.recommend(subjectId, priceMax, limit));
     }
 
+    @Operation(summary = "推荐排序版（认证/评分/完课/信用 四维加权，带推荐分与推荐理由）")
+    @GetMapping("/recommend-ranked")
+    public ApiResponse<java.util.List<TutorVO>> recommendRanked(@RequestParam(required = false) Long subjectId,
+                                                                @RequestParam(defaultValue = "3") int limit) {
+        return ApiResponse.ok(tutorService.recommendRanked(subjectId, limit));
+    }
+
+    @Operation(summary = "推荐排序权重（公开，用于页面说明与论文）")
+    @GetMapping("/recommend-weights")
+    public ApiResponse<java.util.Map<String, Object>> recommendWeights() {
+        return ApiResponse.ok(tutorService.recommendWeights());
+    }
+
     @Operation(summary = "家教信息详情（公开）")
     @GetMapping("/{id}")
     public ApiResponse<TutorVO> detail(@PathVariable Long id) {

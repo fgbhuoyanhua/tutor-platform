@@ -1,0 +1,240 @@
+<template>
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
+    <!-- 提交投诉 -->
+    <view class="card">
+      <text class="section-title">投诉举报</text>
+
+      <text class="sub-label">被投诉老师</text>
+      <view class="chips">
+        <text v-for="(t: UTSJSONObject, i: number) in tutors" :key="i"
+              :class="tutorId == (t['userId'] as number) ? 'chip chip-on' : 'chip'"
+              @click="pickTutor(t['userId'] as number, t['tutorName'] as string)">{{ t['tutorName'] }}</text>
+        <text v-if="tutors.length == 0" class="tip">暂无可投诉的老师</text>
+      </view>
+
+      <text class="sub-label">投诉类型</text>
+      <view class="chips">
+        <text v-for="(l: string, i: number) in typeLabels" :key="i"
+              :class="type == (i + 1) ? 'chip chip-on' : 'chip'"
+              @click="pickType(i + 1)">{{ l }}</text>
+      </view>
+
+      <text class="sub-label">投诉说明</text>
+      <textarea class="textarea" v-model="content" placeholder="请描述发生了什么，便于管理员核实（500字以内）" :maxlength="500" />
+
+      <button class="btn-primary" :disabled="submitting" @click="submit">提交投诉</button>
+      <text class="tip">同一老师同时只能有一条待处理投诉；投诉成立后平台会扣减该老师信用分</text>
+    </view>
+
+    <!-- 我的投诉 -->
+    <view class="card">
+      <text class="section-title">我的投诉（{{ mine.length }}）</text>
+      <text v-if="mine.length == 0" class="empty">还没有提交过投诉</text>
+      <view v-for="(c: UTSJSONObject, i: number) in mine" :key="i" class="claim-item">
+        <view class="claim-head">
+          <text class="claim-tutor">{{ c['tutorName'] }} · {{ c['typeLabel'] }}</text>
+          <text :class="['claim-status', statusClass(c['status'] as number)]">{{ c['statusLabel'] }}</text>
+        </view>
+        <text class="claim-content">{{ c['content'] }}</text>
+        <text v-if="c['handleNote'] != null && c['handleNote'] != ''" class="claim-note">处理说明：{{ c['handleNote'] }}</text>
+        <text class="claim-time">{{ c['createTime'] }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { myComplaints, submitComplaint } from '../../api/governance'
+import { pageTutors } from '../../api/tutor'
+
+export default {
+  data() {
+    return {
+      tutors: [] as UTSJSONObject[],
+      mine: [] as UTSJSONObject[],
+      tutorId: 0,
+      type: 1,
+      content: '',
+      submitting: false,
+      typeLabels: ['爽约', '私改价格', '骚扰辱骂', '虚假信息', '其他'] as string[]
+    }
+  },
+  onShow() {
+    this.loadTutors()
+    this.loadMine()
+  },
+  methods: {
+    statusClass(s: number): string {
+      if (s == 1) return 'status-ok'
+      if (s == 2) return 'status-off'
+      return 'status-wait'
+    },
+    pickTutor(id: number, name: string) {
+      this.tutorId = id
+    },
+    pickType(t: number) {
+      this.type = t
+    },
+    async loadTutors() {
+      try {
+        const params = new Map<string, any>()
+        params.set('page', 1)
+        params.set('size', 50)
+        const res = await pageTutors(params)
+        this.tutors = res['records'] as UTSJSONObject[]
+      } catch (e) {
+        this.tutors = []
+      }
+    },
+    async loadMine() {
+      try {
+        const res = await myComplaints()
+        const list = res['list']
+        this.mine = list == null ? [] as UTSJSONObject[] : (list as UTSJSONObject[])
+      } catch (e) {
+        this.mine = []
+      }
+    },
+    async submit() {
+      if (this.tutorId <= 0) {
+        uni.showToast({ title: '请选择被投诉老师', icon: 'none' })
+        return
+      }
+      if (this.content.trim() == '') {
+        uni.showToast({ title: '请填写投诉说明', icon: 'none' })
+        return
+      }
+      this.submitting = true
+      try {
+        await submitComplaint(this.tutorId, this.type, this.content.trim(), 0)
+        uni.showToast({ title: '投诉已提交', icon: 'success' })
+        this.content = ''
+        this.loadMine()
+      } catch (e) {
+        const err = e as Error
+        uni.showToast({ title: err.message, icon: 'none', duration: 6000 })
+      } finally {
+        this.submitting = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  background: #f5f7fa;
+  padding-top: 20rpx; padding-right: 20rpx; padding-left: 20rpx; padding-bottom: 120rpx;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  margin-bottom: 12rpx;
+}
+.sub-label {
+  font-size: 26rpx;
+  color: #606266;
+  margin-top: 20rpx;
+  margin-bottom: 12rpx;
+}
+.chips {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 24rpx;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 10rpx;
+  padding-top: 10rpx; padding-bottom: 10rpx;
+  padding-left: 20rpx; padding-right: 20rpx;
+  margin-right: 12rpx;
+  margin-bottom: 12rpx;
+}
+.chip-on {
+  background: #4f6ef7;
+  color: #ffffff;
+}
+.textarea {
+  width: 100%;
+  height: 200rpx;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+  padding-top: 16rpx;
+  padding-left: 16rpx;
+  padding-right: 16rpx;
+  font-size: 26rpx;
+}
+.btn-primary {
+  margin-top: 24rpx;
+  background: #4f6ef7;
+  color: #fff;
+  border-radius: 12rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 30rpx;
+  flex-shrink: 0;
+}
+.tip {
+  font-size: 22rpx;
+  color: #9ca3af;
+  margin-top: 12rpx;
+}
+.empty {
+  font-size: 26rpx;
+  color: #9ca3af;
+  text-align: center;
+  padding-top: 40rpx; padding-bottom: 40rpx;
+}
+.claim-item {
+  padding-top: 18rpx;
+  padding-bottom: 18rpx;
+  border-bottom-width: 1rpx;
+  border-bottom-color: #f3f4f6;
+  border-bottom-style: solid;
+}
+.claim-head {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.claim-tutor {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.claim-status {
+  font-size: 22rpx;
+  padding-top: 4rpx; padding-bottom: 4rpx;
+  padding-left: 12rpx; padding-right: 12rpx;
+  border-radius: 8rpx;
+}
+.status-ok { background: #ecfdf5; color: #059669; }
+.status-wait { background: #fff7e6; color: #b8860b; }
+.status-off { background: #f3f4f6; color: #9ca3af; }
+.claim-content {
+  font-size: 25rpx;
+  color: #4b5563;
+  margin-top: 8rpx;
+}
+.claim-note {
+  font-size: 23rpx;
+  color: #059669;
+  margin-top: 6rpx;
+}
+.claim-time {
+  font-size: 22rpx;
+  color: #9ca3af;
+  margin-top: 6rpx;
+}
+</style>

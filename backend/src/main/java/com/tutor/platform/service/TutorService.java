@@ -6,9 +6,10 @@ import com.tutor.platform.vo.TutorVO;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 家教信息服务：发布、编辑、分页查询、审核
+ * 家教信息服务：发布、编辑、分页查询、审核、推荐排序
  */
 public interface TutorService {
 
@@ -29,6 +30,12 @@ public interface TutorService {
     /** 管理员审核：0待审核 → 1通过 / 3驳回 */
     void audit(Long id, boolean pass, String reason);
 
-    /** 智能推荐：按科目+价格+评分推荐老师 */
+    /** 智能推荐（旧口径）：按科目+价格+评分推荐老师 */
     List<TutorVO> recommend(Long subjectId, BigDecimal priceMax, int limit);
+
+    /** 推荐排序显式化：认证/评分/完课/信用 四维加权打分后排序，返回带 recommendScore 与推荐理由的列表 */
+    List<TutorVO> recommendRanked(Long subjectId, int limit);
+
+    /** 当前生效的推荐权重（供管理端展示与论文写作） */
+    Map<String, Object> recommendWeights();
 }

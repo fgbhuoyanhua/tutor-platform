@@ -1,5 +1,16 @@
 import { get, post, put } from './request';
-import type { IncomeVO, MyStudentVO, PageResult, TutorDashboardVO, TutorVO, TutorDTO } from '../models';
+import type {
+  BillVO,
+  ComplaintCreateDTO,
+  ComplaintVO,
+  IncomeVO,
+  MyStudentVO,
+  PageResult,
+  RecommendWeights,
+  TutorDashboardVO,
+  TutorVO,
+  TutorDTO,
+} from '../models';
 
 export interface TutorQuery {
   page?: number;
@@ -48,6 +59,31 @@ export function getMyStudents(): Promise<MyStudentVO[]> {
 /** 智能推荐老师 */
 export function recommendTutors(subjectId?: number, priceMax?: number, limit = 3): Promise<TutorVO[]> {
   return get<TutorVO[]>('/tutors/recommend', { subjectId, priceMax, limit });
+}
+
+/** 推荐排序版：认证/评分/完课/信用 四维加权，返回带推荐分与推荐理由 */
+export function recommendRanked(subjectId?: number, limit = 5): Promise<TutorVO[]> {
+  return get<TutorVO[]>('/tutors/recommend-ranked', { subjectId, limit });
+}
+
+/** 推荐排序权重（公开） */
+export function getRecommendWeights(): Promise<RecommendWeights> {
+  return get<RecommendWeights>('/tutors/recommend-weights');
+}
+
+/** 老师课时账单（按月，订单快照） */
+export function getTutorBill(month: string): Promise<BillVO> {
+  return get<BillVO>('/tutor/bill', { month });
+}
+
+/** 学生提交投诉举报 */
+export function submitComplaint(data: ComplaintCreateDTO): Promise<number> {
+  return post<number>('/complaints', data);
+}
+
+/** 我提交的投诉 */
+export function myComplaints(): Promise<ComplaintVO[]> {
+  return get<ComplaintVO[]>('/complaints/my');
 }
 
 /** 老师回复评价 */

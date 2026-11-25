@@ -1,0 +1,266 @@
+<template>
+  <scroll-view class="page" scroll-y="true" style="flex: 1; height: 1000px;">
+    <!-- 账期选择 -->
+    <view class="card">
+      <text class="section-title">课时账单</text>
+      <view class="month-row">
+        <view class="month-btn" @click="prevMonth">
+          <text class="month-btn-text">‹ 上月</text>
+        </view>
+        <text class="month-text">{{ month }}</text>
+        <view class="month-btn" @click="nextMonth">
+          <text class="month-btn-text">下月 ›</text>
+        </view>
+      </view>
+      <text class="tip">金额取自订单快照，老师后续改价不会影响历史账单</text>
+    </view>
+
+    <!-- 汇总 -->
+    <view class="card">
+      <view class="stat-row">
+        <view class="stat">
+          <text class="stat-num">{{ bill != null ? bill!['finishedCount'] : 0 }}</text>
+          <text class="stat-label">已完成节数</text>
+        </view>
+        <view class="stat">
+          <text class="stat-num">{{ hoursText }}</text>
+          <text class="stat-label">已完成时长(小时)</text>
+        </view>
+      </view>
+      <view class="stat-row">
+        <view class="stat">
+          <text class="stat-num amount">¥{{ amountText }}</text>
+          <text class="stat-label">已完成金额</text>
+        </view>
+        <view class="stat">
+          <text class="stat-num">{{ bill != null ? bill!['pendingCount'] : 0 }}</text>
+          <text class="stat-label">未结算订单</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 明细 -->
+    <view class="card">
+      <text class="section-title">课时明细（{{ items.length }} 笔）</text>
+      <text v-if="items.length == 0" class="empty">该月还没有课时记录</text>
+      <view v-for="(it: UTSJSONObject, i: number) in items" :key="i" class="bill-item">
+        <view class="item-head">
+          <text class="item-date">{{ it['appointDate'] }} {{ it['timeSlot'] }}</text>
+          <text :class="['item-status', statusClass(it['status'] as number)]">{{ it['statusName'] }}</text>
+        </view>
+        <view class="item-mid">
+          <text class="item-sub">{{ it['studentName'] }} · {{ it['subjectName'] }}</text>
+          <text class="item-dur">{{ it['durationMinutes'] }} 分钟</text>
+        </view>
+        <view class="item-foot">
+          <text class="item-no">{{ it['orderNo'] }}</text>
+          <text class="item-amount">¥{{ it['amount'] }}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script lang="uts">
+import { getTutorBill } from '../../api/governance'
+
+export default {
+  data() {
+    return {
+      month: '',
+      bill: null as UTSJSONObject | null,
+      items: [] as UTSJSONObject[]
+    }
+  },
+  computed: {
+    hoursText(): string {
+      if (this.bill == null) return '0.0'
+      const m = this.bill!['finishedMinutes'] as number
+      const h = m / 60.0
+      return h.toFixed(1)
+    },
+    amountText(): string {
+      if (this.bill == null) return '0.00'
+      const total = this.bill!['totalAmount']
+      if (total == null) return '0.00'
+      return (total as number).toFixed(2)
+    }
+  },
+  onLoad() {
+    // 默认当前月：用时间戳拼 yyyy-MM（UTS 已验证可用 new Date(ts)）
+    const d = new Date()
+    const m = d.getMonth() + 1
+    const mm = m < 10 ? '0' + m : '' + m
+    this.month = d.getFullYear() + '-' + mm
+    this.loadBill()
+  },
+  methods: {
+    statusClass(s: number): string {
+      if (s == 3) return 'status-done'
+      if (s == 0) return 'status-wait'
+      if (s == 4 || s == 5) return 'status-off'
+      return 'status-run'
+    },
+    parseMonth(): number[] {
+      const parts = this.month.split('-')
+      return [parseInt(parts[0]), parseInt(parts[1])]
+    },
+    shiftMonth(delta: number) {
+      const p = this.parseMonth()
+      let y = p[0]
+      let m = p[1] + delta
+      if (m > 12) { m = 1; y = y + 1 }
+      if (m < 1) { m = 12; y = y - 1 }
+      const mm = m < 10 ? '0' + m : '' + m
+      this.month = y + '-' + mm
+      this.loadBill()
+    },
+    prevMonth() { this.shiftMonth(-1) },
+    nextMonth() { this.shiftMonth(1) },
+    async loadBill() {
+      try {
+        const res = await getTutorBill(this.month)
+        this.bill = res
+        const list = res['items']
+        this.items = list == null ? [] as UTSJSONObject[] : (list as UTSJSONObject[])
+      } catch (e) {
+        uni.showToast({ title: '账单加载失败', icon: 'none', duration: 6000 })
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.page {
+  background: #f5f7fa;
+  padding-top: 20rpx; padding-right: 20rpx; padding-left: 20rpx; padding-bottom: 120rpx;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+  margin-bottom: 20rpx;
+}
+.month-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+.month-text {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1b1c;
+}
+.month-btn {
+  background: #eef2ff;
+  border-radius: 12rpx;
+  padding-top: 10rpx; padding-bottom: 10rpx;
+  padding-left: 22rpx; padding-right: 22rpx;
+}
+.month-btn-text {
+  font-size: 24rpx;
+  color: #4f6ef7;
+}
+.tip {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+.stat-row {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 16rpx;
+}
+.stat {
+  flex: 1;
+  align-items: center;
+}
+.stat-num {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #1a1b1c;
+  text-align: center;
+}
+.amount {
+  color: #e55;
+}
+.stat-label {
+  font-size: 22rpx;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 4rpx;
+}
+.empty {
+  font-size: 26rpx;
+  color: #9ca3af;
+  text-align: center;
+  padding-top: 40rpx; padding-bottom: 40rpx;
+}
+.bill-item {
+  padding-top: 18rpx;
+  padding-bottom: 18rpx;
+  border-bottom-width: 1rpx;
+  border-bottom-color: #f3f4f6;
+  border-bottom-style: solid;
+}
+.item-head {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.item-date {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1b1c;
+}
+.item-status {
+  font-size: 22rpx;
+  padding-top: 4rpx; padding-bottom: 4rpx;
+  padding-left: 12rpx; padding-right: 12rpx;
+  border-radius: 8rpx;
+}
+.status-done { background: #ecfdf5; color: #059669; }
+.status-wait { background: #fff7e6; color: #b8860b; }
+.status-run { background: #eef2ff; color: #4f6ef7; }
+.status-off { background: #f3f4f6; color: #9ca3af; }
+.item-mid {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 8rpx;
+}
+.item-sub {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+.item-dur {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+.item-foot {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8rpx;
+}
+.item-no {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+.item-amount {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #e55;
+}
+</style>

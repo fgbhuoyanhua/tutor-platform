@@ -82,6 +82,18 @@ const router = createRouter({
           meta: { title: '收入统计', roles: [2] },
         },
         {
+          path: 'tutor/bill',
+          name: 'tutorBill',
+          component: () => import('@/views/tutor/TutorBill.vue'),
+          meta: { title: '课时账单', roles: [2] },
+        },
+        {
+          path: 'student/complaints',
+          name: 'studentComplaints',
+          component: () => import('@/views/student/Complaint.vue'),
+          meta: { title: '投诉举报', roles: [1] },
+        },
+        {
           path: 'orders',
           name: 'orders',
           component: () => import('@/views/order/OrderList.vue'),
@@ -116,6 +128,12 @@ const router = createRouter({
           name: 'adminUsers',
           component: () => import('@/views/admin/UserManage.vue'),
           meta: { title: '用户管理', roles: [ROLE_ADMIN] },
+        },
+        {
+          path: 'admin/complaints',
+          name: 'adminComplaints',
+          component: () => import('@/views/admin/ComplaintManage.vue'),
+          meta: { title: '投诉处理', roles: [ROLE_ADMIN] },
         },
         {
           path: 'admin/logs',

@@ -58,3 +58,37 @@ export const TIME_SLOTS: string[] = [
   '16:00-18:00',
   '19:00-21:00',
 ];
+
+/** 老师信用等级：A 金牌 / B 优质 / C 普通 / D 受限（阈值与后端 CreditRules 一致） */
+export const CREDIT_LEVEL_LABELS: Record<string, string> = {
+  A: '金牌老师',
+  B: '优质老师',
+  C: '普通老师',
+  D: '受限老师',
+};
+
+/** 信用分 → 等级字母（与后端 CreditRules.levelIndex 阈值一致：90/75/60） */
+export function creditLevelOf(score?: number | null): string {
+  const s = score ?? 100;
+  if (s >= 90) return 'A';
+  if (s >= 75) return 'B';
+  if (s >= 60) return 'C';
+  return 'D';
+}
+
+/** 投诉类型：1爽约 2私改价格 3骚扰辱骂 4虚假信息 5其他 */
+export const COMPLAINT_TYPE_LABELS: Record<number, string> = {
+  1: '爽约',
+  2: '私改价格',
+  3: '骚扰辱骂',
+  4: '虚假信息',
+  5: '其他',
+};
+
+/** 投诉状态：0待处理 1成立 2驳回 */
+export const COMPLAINT_STATUS_LABELS: Record<number, string> = {
+  0: '待处理',
+  1: '成立',
+  2: '驳回',
+};
+

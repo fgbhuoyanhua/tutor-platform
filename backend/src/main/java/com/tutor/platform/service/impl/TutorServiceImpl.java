@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tutor.platform.common.PageParam;
 import com.tutor.platform.common.BizException;
 import com.tutor.platform.common.CacheEvictor;
+import com.tutor.platform.common.CreditRules;
 import com.tutor.platform.entity.SubjectEntity;
 import com.tutor.platform.entity.TutorEntity;
 import com.tutor.platform.entity.UserEntity;
@@ -53,6 +54,7 @@ public class TutorServiceImpl implements TutorService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final CacheEvictor cacheEvictor;
+    private final com.tutor.platform.common.CreditRules creditRules;
 
     @Override
     public Long publish(Long userId, TutorEntity tutor) {
@@ -151,7 +153,6 @@ public class TutorServiceImpl implements TutorService {
         Map<Long, Long> evalCount = countMap(evaluationMapper.countGroupByTutorIds(userIds(records)), records);
         Map<Long, Long> finishedCount = countMap(appointmentMapper.countFinishedGroupByTutorIds(userIds(records)), records);
         IPage<TutorVO> result = p.convert(t -> toVO(t, evalCount, finishedCount));
-
         // 写入缓存，过期时间3分钟；写失败不影响返回结果
         try {
             CachedTutorPage payload = new CachedTutorPage();
@@ -235,6 +236,46 @@ public class TutorServiceImpl implements TutorService {
         return list.stream().map(t -> toVO(t, evalCount, finishedCount)).collect(Collectors.toList());
     }
 
+    /**
+     * 推荐排序显式化：认证状态/评分/完课/信用 四维加权打分后排序（权重见 app.recommend.*）。
+     * 以前是"按 rating 倒序"的黑盒，答辩时被问"凭什么推荐他"说不清；现在每条都带分数与理由。
+     */
+    @Override
+    public List<TutorVO> recommendRanked(Long subjectId, int limit) {
+        LambdaQueryWrapper<TutorEntity> qw = new LambdaQueryWrapper<>();
+        qw.eq(TutorEntity::getStatus, 1)
+           .eq(subjectId != null, TutorEntity::getSubjectId, subjectId);
+        List<TutorEntity> list = tutorMapper.selectList(qw);
+        Map<Long, Long> evalCount = countMap(evaluationMapper.countGroupByTutorIds(userIds(list)), list);
+        Map<Long, Long> finishedCount = countMap(appointmentMapper.countFinishedGroupByTutorIds(userIds(list)), list);
+        List<TutorVO> vos = list.stream().map(t -> toVO(t, evalCount, finishedCount)).collect(Collectors.toList());
+        for (TutorVO v : vos) {
+            v.setRecommendScore(creditRules.recommendScore(
+                    v.getCertStatus(), v.getRating() == null ? null : v.getRating().doubleValue(),
+                    v.getFinishedOrderCount(), v.getCreditScore()));
+            v.setRecommendReason(creditRules.reasonLabel(
+                    v.getCertStatus(), v.getRating() == null ? null : v.getRating().doubleValue(),
+                    v.getFinishedOrderCount(), v.getCreditScore()));
+        }
+        return vos.stream()
+                .sorted((a, b) -> Double.compare(
+                        b.getRecommendScore() == null ? 0 : b.getRecommendScore(),
+                        a.getRecommendScore() == null ? 0 : a.getRecommendScore()))
+                .limit(Math.max(1, limit))
+                .collect(Collectors.toList());
+    }
+
+    /** 推荐权重（供管理端展示与论文写作） */
+    @Override
+    public Map<String, Object> recommendWeights() {
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("cert", creditRules.weightCert());
+        m.put("rating", creditRules.weightRating());
+        m.put("finish", creditRules.weightFinish());
+        m.put("credit", creditRules.weightCredit());
+        return m;
+    }
+
     /** 提取家教记录中的老师 user.id 列表（去重） */
     private List<Long> userIds(List<TutorEntity> records) {
         return records.stream()
@@ -259,6 +300,7 @@ public class TutorServiceImpl implements TutorService {
         SubjectEntity s = subjectMapper.selectById(t.getSubjectId());
         Long evalCnt = evalCount == null ? null : evalCount.get(t.getUserId());
         Long finCnt = finishedCount == null ? null : finishedCount.get(t.getUserId());
+        int credit = t.getCreditScore() == null ? CreditRules.MAX_SCORE : t.getCreditScore();
         return TutorVO.builder()
                 .id(t.getId())
                 .userId(t.getUserId())
@@ -278,6 +320,10 @@ public class TutorServiceImpl implements TutorService {
                 .gradeLevel(t.getGradeLevel())
                 .certStatus(t.getCertStatus() == null ? 0 : t.getCertStatus())
                 .certTime(t.getCertTime())
+                .creditScore(credit)
+                .creditLevel(CreditRules.levelName(credit))
+                .creditLevelLabel(CreditRules.levelLabel(credit))
+                .violationCount(t.getViolationCount() == null ? 0 : t.getViolationCount())
                 .createTime(t.getCreateTime())
                 .build();
     }

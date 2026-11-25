@@ -19,6 +19,10 @@
           <el-icon><Calendar /></el-icon>
           <span>我的课程表</span>
         </el-menu-item>
+        <el-menu-item v-if="userStore.isStudent" index="/student/complaints">
+          <el-icon><Warning /></el-icon>
+          <span>投诉举报</span>
+        </el-menu-item>
         <el-menu-item v-if="userStore.isTutor" index="/my-tutor">
           <el-icon><User /></el-icon>
           <span>我的家教信息</span>
@@ -39,6 +43,10 @@
           <el-menu-item index="/tutor/income">
             <el-icon><Money /></el-icon>
             <span>收入统计</span>
+          </el-menu-item>
+          <el-menu-item index="/tutor/bill">
+            <el-icon><Tickets /></el-icon>
+            <span>课时账单</span>
           </el-menu-item>
         </template>
         <el-menu-item index="/orders">
@@ -61,6 +69,10 @@
           <el-menu-item index="/admin/users">
             <el-icon><UserFilled /></el-icon>
             <span>用户管理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/complaints">
+            <el-icon><Warning /></el-icon>
+            <span>投诉处理</span>
           </el-menu-item>
           <el-menu-item index="/admin/logs">
             <el-icon><Document /></el-icon>
@@ -135,6 +147,8 @@ import {
   Calendar,
   Star,
   Money,
+  Tickets,
+  Warning,
 } from '@element-plus/icons-vue';
 import {
   ROLE_LABELS,
